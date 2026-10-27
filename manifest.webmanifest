@@ -1,0 +1,17 @@
+{
+  "name": "Nutrac",
+  "short_name": "Nutrac",
+  "description": "Kalorien, Makros, Gewicht und Sport – für dich und deine Freunde.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#8b8b8b",
+  "theme_color": "#8b8b8b",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
