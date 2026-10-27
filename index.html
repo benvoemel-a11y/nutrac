@@ -18,7 +18,7 @@
 html{-webkit-text-size-adjust:100%;touch-action:manipulation}
 .app{height:100dvh}
 input[type=date]{font-size:16px!important}
-body{margin:0;font-size:14px;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body{margin:0;font-size:14px;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:0;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea{-webkit-user-select:text;user-select:text}
 img{max-width:100%}
 /* Layout: drei Seiten nebeneinander, horizontal geschoben (Heute · Gewicht · Profil), Punkte unten – Filer/physis-Grau, eine bewusste Optik */
@@ -47,9 +47,9 @@ button{background:none;border:0;padding:0;cursor:pointer}
 
 .app{height:100%;display:flex;flex-direction:column;overflow:hidden}
 .viewport{flex:1;min-height:0;overflow:hidden;position:relative}
-.track{display:flex;height:100%;transition:transform .38s cubic-bezier(.22,.8,.24,1);will-change:transform}
+.track{display:flex;height:100%;transition:transform .42s cubic-bezier(.2,.9,.25,1);will-change:transform}
 .page{flex:0 0 100%;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
-  padding-left:max(22px,env(safe-area-inset-left,0px));padding-right:max(22px,env(safe-area-inset-right,0px));padding-block:22px 40px;box-sizing:border-box}
+  padding-left:max(22px,env(safe-area-inset-left,0px));padding-right:max(22px,env(safe-area-inset-right,0px));padding-block:18px 18px;box-sizing:border-box}
 .page-in{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
 
 /* Kopf */
@@ -200,6 +200,20 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .reqrow .btn{width:auto;padding:10px 14px;font-size:14px}
 .dots button{position:relative}
 .dots button.badge::after{content:"";position:absolute;top:9px;right:18px;width:9px;height:9px;border-radius:50%;background:var(--alert)}
+/* Tipp-Feedback: kurz eindrücken statt dunkler Fläche */
+.btn,.opt,.circle,.row,.chip,.seg button,.tabs button,.dots button,.x,.back,.check,.swatches button,.days button,.who button,.lnk,.later,.linkdanger,.arrow{transition:transform .16s cubic-bezier(.3,.7,.4,1),opacity .16s,background-color .2s,color .2s,border-color .2s}
+.btn:active,.opt:active,.circle:active,.chip:active,.seg button:active,.tabs button:active,.x:active,.back:active,.swatches button:active,.days button:active,.arrow:active{transform:scale(.95)}
+.row:active{transform:scale(.985)}
+.dots button:active i{transform:scale(.8)}
+.dots i{transition:background .25s,transform .2s}
+.check:active i{transform:scale(.85)}
+.check i{transition:background .15s,border-color .15s,transform .15s}
+.sheet-body>*{animation:sheetIn .32s cubic-bezier(.2,.9,.25,1) both}
+.sheet-body>*:nth-child(2){animation-delay:.03s}.sheet-body>*:nth-child(3){animation-delay:.06s}.sheet-body>*:nth-child(4){animation-delay:.09s}.sheet-body>*:nth-child(n+5){animation-delay:.12s}
+@keyframes sheetIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.toast{transition:opacity .25s,transform .35s cubic-bezier(.2,.9,.25,1)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips .chip{padding:8px 12px;font-size:13px}
 .linkdanger{color:var(--alert);font-size:14px;text-align:center;padding:6px}
 .macro b{font-weight:400;font-size:14px}
 .macro .bar{height:6px}
@@ -263,9 +277,9 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .calc div.total .num{font-size:18px;font-weight:600}
 
 /* Punkte */
-.dots{display:flex;justify-content:center;gap:10px;padding-block:6px 10px;flex:none;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.dots button{width:64px;height:48px;display:grid;place-items:center;border-radius:14px;touch-action:manipulation}
-.dots button:active{background:var(--card)}
+.dots{display:flex;justify-content:center;gap:10px;padding-top:2px;padding-bottom:max(4px,calc(env(safe-area-inset-bottom,0px) - 14px));flex:none;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.dots button{width:64px;height:40px;display:grid;place-items:center;border-radius:14px;touch-action:manipulation}
+
 .dots i{width:13px;height:13px;border-radius:50%;border:2px solid var(--ink);box-sizing:border-box;transition:background .2s}
 .dots button[aria-current="true"] i{background:var(--ink)}
 
@@ -439,7 +453,7 @@ const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goa
 const KCAL_PER_KG=7000;
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#d93f37"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];document.documentElement.style.setProperty("--wm",c[2])}
-const ADD_ITEMS=[["barcode","Barcode scannen"],["photo","Nährwerttabelle fotografieren"],["manual","Manuell eintragen"],["sport","Sport"],["steps","Schritte"],["weight","Gewicht"],["meals","Gespeicherte Gerichte"]];
+const ADD_ITEMS=[["barcode","Barcode scannen"],["photo","Nährwerttabelle fotografieren"],["manual","Manuell eintragen"],["sport","Sport"],["steps","Schritte"],["weight","Gewicht"],["meals","Gespeicherte Lebensmittel"]];
 function addOrderOf(p){
   p=p||{};
   let l=Array.isArray(p.addOrder)?p.addOrder.filter(x=>x&&ADD_ITEMS.some(a=>a[0]===x.id)).map(x=>({id:x.id,on:x.on!==false})):[];
@@ -1109,10 +1123,10 @@ function go(i){
 document.querySelectorAll(".dots button").forEach(b=>b.onclick=()=>go(+b.dataset.p));
 (function swipe(){
   const tr=$("#track"),vp=document.querySelector(".viewport");
-  let x0=0,y0=0,dx=0,axis=null,on=false;
+  let x0=0,y0=0,dx=0,axis=null,on=false,t0=0;
   vp.addEventListener("touchstart",e=>{
     if(e.target.closest("input,select,.chart,.sheet,.sw")){on=false;return}
-    on=true;axis=null;dx=0;x0=e.touches[0].clientX;y0=e.touches[0].clientY;
+    on=true;axis=null;dx=0;t0=Date.now();x0=e.touches[0].clientX;y0=e.touches[0].clientY;
   },{passive:true});
   vp.addEventListener("touchmove",e=>{
     if(!on)return;const t=e.touches[0];dx=t.clientX-x0;const dy=t.clientY-y0;
@@ -1124,7 +1138,8 @@ document.querySelectorAll(".dots button").forEach(b=>b.onclick=()=>go(+b.dataset
   },{passive:true});
   vp.addEventListener("touchend",()=>{
     if(!on)return;on=false;tr.style.transition="";
-    if(axis==="x"&&Math.abs(dx)>60) go(S.page+(dx<0?1:-1)); else go(S.page);
+    const v=Math.abs(dx)/Math.max(1,Date.now()-t0);
+    if(axis==="x"&&(Math.abs(dx)>window.innerWidth*.28||(Math.abs(dx)>24&&v>.45))) go(S.page+(dx<0?1:-1)); else go(S.page);
   });
 })();
 document.addEventListener("keydown",e=>{
@@ -1236,18 +1251,19 @@ function openAdd(){
     sport:`<button class="opt" id="optSport">${ICON.run}<span><b>Sport</b><small>Verbrannte kcal kommen zu den offenen dazu</small></span></button>`,
     steps:p.actMode==="steps"?`<button class="opt" id="optSteps">${ICON.steps}<span><b>Schritte</b><small>Schritte des Tages – erhöhen dein Tagesziel</small></span></button>`:"",
     weight:`<button class="opt" id="optWeight">${ICON.scale}<span><b>Gewicht</b><small>Heute oder nachträglich eintragen</small></span></button>`,
-    meals:`<div class="sec"><h4>Gerichte</h4><span>${S.meals.length?S.meals.length+" gespeichert":"noch keine"}</span></div>
+    meals:`<div class="sec"><h4>Gespeichert</h4><button class="lnk" id="mealNew" style="font-size:13px">+ Lebensmittel anlegen</button></div>
     ${S.meals.length?`<div class="card flush"><div class="list">${[...S.meals].sort((a,b)=>String(a.name).localeCompare(String(b.name),"de")).map(m=>{
       const k=Math.round(num(m.k100)*num(m.grams||100)/100);
-      return `<button class="row" data-meal="${esc(m.id)}"><span class="t">${fmt(m.grams||100)} g</span><span class="n">${esc(m.name)}<small>${fmt(m.k100)} kcal / 100 g</small></span><span class="k">${fmt(k)}</span></button>`}).join("")}</div></div>`
-    :`<p class="hint">Beim Eintragen „Als Gericht speichern“ antippen – dann taucht es hier auf und ist mit einem Tipp wieder drin.</p>`}`
+      return `<button class="row" data-meal="${esc(m.id)}"><span class="t">${fmt(m.k100)}</span><span class="n">${esc(m.name)}<small>kcal pro 100 g · zuletzt ${fmt(m.grams||100)} g</small></span><span class="k">›</span></button>`}).join("")}</div></div>`
+    :`<p class="hint">Leg Lebensmittel wie „Hähnchenbrust“ einmal mit ihren Werten pro 100 g an – danach gibst du nur noch die Gramm ein.</p>`}`
   };
   const html=addOrderOf(p).filter(x=>x.on).map(x=>H[x.id]).join("\n")||`<p class="hint">Alle Punkte sind ausgeblendet. Im Rädchen unter „Hinzufügen-Menü“ wieder einschalten.</p>`;
   openSheet("Hinzufügen",html,
   b=>{
     const on=(sel,fn)=>{const x=b.querySelector(sel);if(x)x.onclick=fn};
     on("#optManual",()=>foodForm({}));on("#optBarcode",barcodeSheet);on("#optSport",sportForm);on("#optWeight",weightQuick);on("#optSteps",stepsForm);
-    b.querySelectorAll("[data-meal]").forEach(x=>x.onclick=()=>{const m=S.meals.find(q=>q.id===x.dataset.meal);if(m)foodForm({name:m.name,k100:m.k100,p100:m.p100,c100:m.c100,f100:m.f100,grams:m.grams||100,mealId:m.id})});
+    b.querySelectorAll("[data-meal]").forEach(x=>x.onclick=()=>{const m=S.meals.find(q=>q.id===x.dataset.meal);if(m)quickMeal(m)});
+    on("#mealNew",mealNewForm);
     const f=b.querySelector("#scanFile");if(f)f.onchange=()=>{if(f.files&&f.files[0])scan(f.files[0])};
   },{reopen:openAdd});
 }
@@ -1327,8 +1343,55 @@ function barcodeSheet(){
     return()=>{done=true;try{controls&&controls.stop()}catch(e){}};
   });
 }
+function quickMeal(m){
+  const per=g=>({grams:g,kcal:Math.round(num(m.k100)*g/100),p:Math.round(num(m.p100)*g)/100,c:Math.round(num(m.c100)*g)/100,f:Math.round(num(m.f100)*g)/100});
+  openSheet(m.name||"Lebensmittel",`
+    <p class="hint" style="margin:0">${fmt(m.k100)} kcal · ${fmt(m.p100,1)} E · ${fmt(m.c100,1)} KH · ${fmt(m.f100,1)} F pro 100 g</p>
+    <label class="fld"><span>Menge in Gramm</span><input class="in big-in" type="text" inputmode="numeric" id="qmG" value="${esc(m.grams||100)}" autocomplete="off"></label>
+    <div class="chips" id="qmChips">${[100,150,200,250,300,400].map(g=>`<button class="chip" data-g="${g}">${g} g</button>`).join("")}</div>
+    <div class="result" id="qmRes"></div>
+    <button class="btn" id="qmAdd">Hinzufügen</button>
+    <button class="lnk" id="qmEdit" style="justify-self:start">Werte bearbeiten</button>`,
+  b=>{
+    const inp=b.querySelector("#qmG");
+    const upd=()=>{const r=per(num(inp.value));b.querySelector("#qmRes").innerHTML=`<strong>${fmt(r.kcal)}</strong><span>kcal</span><span style="color:var(--muted)">${fmt(r.p,1)} E · ${fmt(r.c,1)} KH · ${fmt(r.f,1)} F</span>`};
+    inp.addEventListener("input",upd);upd();
+    setTimeout(()=>{inp.focus();inp.select()},350);
+    b.querySelector("#qmChips").onclick=e=>{const c=e.target.closest("[data-g]");if(!c)return;inp.value=c.dataset.g;upd()};
+    b.querySelector("#qmEdit").onclick=()=>foodForm({name:m.name,k100:m.k100,p100:m.p100,c100:m.c100,f100:m.f100,grams:num(inp.value)||m.grams||100,mealId:m.id});
+    b.querySelector("#qmAdd").onclick=async()=>{
+      const g=Math.round(num(inp.value));if(!g){toast("Bitte die Gramm eintragen");return}
+      const r=per(g);
+      try{await store.addFood(S.me,{kind:"food",date:S.day,t:entryTime(),name:m.name,...r});
+        if(g!==num(m.grams)){const {id,...rest}=m;store.put(S.me,"meals",m.id,{...rest,grams:g}).catch(()=>{})}
+        closeSheet();toast(`${m.name} · ${fmt(r.kcal)} kcal`)}catch(err){writeErr(err)}
+    };
+  });
+}
+function mealNewForm(){
+  openSheet("Lebensmittel anlegen",`
+    <label class="fld"><span>Name</span><input class="in" id="mnName" maxlength="40" placeholder="z. B. Hähnchenbrust" autocomplete="off"></label>
+    <div class="fld"><span>Pro 100 g</span>
+      <div class="f4">
+        <label class="fld"><span>kcal</span><input class="in" type="text" inputmode="decimal" id="mnK"></label>
+        <label class="fld"><span>Eiweiß</span><input class="in" type="text" inputmode="decimal" id="mnP"></label>
+        <label class="fld"><span>KH</span><input class="in" type="text" inputmode="decimal" id="mnC"></label>
+        <label class="fld"><span>Fett</span><input class="in" type="text" inputmode="decimal" id="mnF"></label>
+      </div></div>
+    <p class="hint" style="margin:0">Danach reicht beim Eintragen die Grammzahl – z. B. 200 g.</p>
+    <button class="btn" id="mnSave">Speichern</button>`,
+  b=>{
+    setTimeout(()=>b.querySelector("#mnName").focus(),350);
+    b.querySelector("#mnSave").onclick=async()=>{
+      const name=b.querySelector("#mnName").value.trim(),k=num(b.querySelector("#mnK").value);
+      if(!name){toast("Bitte einen Namen eingeben");return}
+      if(!k){toast("Bitte kcal pro 100 g eintragen");return}
+      try{await store.addMeal(S.me,{name,grams:100,k100:k,p100:num(b.querySelector("#mnP").value),c100:num(b.querySelector("#mnC").value),f100:num(b.querySelector("#mnF").value)});toast(`${name} gespeichert`);done()}catch(err){writeErr(err)}
+    };
+  });
+}
 function foodForm(v,o){
-  openSheet(v.mealId?"Gericht":v.preview?"Gescannt":"Manuell",`
+  openSheet(v.mealId?"Lebensmittel":v.preview?"Gescannt":"Manuell",`
     ${v.preview?`<img class="thumb" src="${v.preview}" alt="Dein Foto" style="max-height:120px">`:""}
     ${v.estimate?`<p class="hint">Keine Tabelle gefunden – Werte aus dem Foto geschätzt. Bitte prüfen.</p>`:""}
     <label class="fld"><span>Name</span><input class="in" id="fName" maxlength="40" value="${esc(v.name||"")}" placeholder="z. B. Skyr Natur"></label>
@@ -1341,9 +1404,9 @@ function foodForm(v,o){
         <label class="fld"><span>Fett</span><input class="in" type="text" inputmode="decimal" id="fF" value="${esc(v.f100??"")}"></label>
       </div></div>
     <div class="result" id="fRes"></div>
-    ${v.mealId?"":`<button class="check" id="fKeep" aria-pressed="false"><i></i>Als Gericht speichern</button>`}
+    ${v.mealId?"":`<button class="check" id="fKeep" aria-pressed="false"><i></i>Als Lebensmittel speichern</button>`}
     <button class="btn" id="fAdd">Hinzufügen</button>
-    ${v.mealId?`<button class="linkdanger" id="fDelMeal">Gericht aus der Liste löschen</button>`:""}`,
+    ${v.mealId?`<button class="linkdanger" id="fDelMeal">Lebensmittel aus der Liste löschen</button>`:""}`,
   b=>{
     const g=()=>{const gr=num(b.querySelector("#fGrams").value),f=gr/100;
       return{grams:gr,kcal:Math.round(num(b.querySelector("#fK").value)*f),p:Math.round(num(b.querySelector("#fP").value)*f*10)/10,c:Math.round(num(b.querySelector("#fC").value)*f*10)/10,f:Math.round(num(b.querySelector("#fF").value)*f*10)/10}};
@@ -1351,13 +1414,14 @@ function foodForm(v,o){
     b.querySelectorAll("input").forEach(i=>i.addEventListener("input",upd));upd();
     if(!v.grams) setTimeout(()=>b.querySelector(v.name?"#fGrams":"#fName").focus(),350);
     const keep=b.querySelector("#fKeep");if(keep)keep.onclick=()=>keep.setAttribute("aria-pressed",String(keep.getAttribute("aria-pressed")!=="true"));
-    const dm=b.querySelector("#fDelMeal");if(dm)dm.onclick=async()=>{try{await store.delMeal(S.me,v.mealId);closeSheet();toast("Gericht gelöscht")}catch(err){writeErr(err)}};
+    const dm=b.querySelector("#fDelMeal");if(dm)dm.onclick=async()=>{try{await store.delMeal(S.me,v.mealId);closeSheet();toast("Lebensmittel gelöscht")}catch(err){writeErr(err)}};
     b.querySelector("#fAdd").onclick=async()=>{
       const r=g();const name=b.querySelector("#fName").value.trim()||"Eintrag";
       if(!r.grams){toast("Bitte die Menge in Gramm eintragen");return}
       if(!num(b.querySelector("#fK").value)){toast("Bitte kcal pro 100 g eintragen");return}
       try{
         await store.addFood(S.me,{kind:"food",date:S.day,t:entryTime(),name,...r});
+        if(v.mealId){const vals={name,grams:r.grams,k100:num(b.querySelector("#fK").value),p100:num(b.querySelector("#fP").value),c100:num(b.querySelector("#fC").value),f100:num(b.querySelector("#fF").value)};store.put(S.me,"meals",v.mealId,vals).catch(()=>{})}
         if(keep&&keep.getAttribute("aria-pressed")==="true") await store.addMeal(S.me,{name,grams:r.grams,k100:num(b.querySelector("#fK").value),p100:num(b.querySelector("#fP").value),c100:num(b.querySelector("#fC").value),f100:num(b.querySelector("#fF").value)});
         closeSheet();toast(`${name} · ${fmt(r.kcal)} kcal`)}catch(err){writeErr(err)}
     };
@@ -1489,7 +1553,7 @@ async function buildBackupPdf(){
   const days={};data.food.forEach(e=>{(days[e.date]=days[e.date]||[]).push(e)});
   y+=3;line(`Tage (${Object.keys(days).length} Tage, ${data.food.length} Eintraege)`,13,true);
   Object.keys(days).sort().reverse().slice(0,60).forEach(k=>{const st=dayStats(days[k]);line(`${parseKey(k).toLocaleDateString("de-DE")}   gegessen ${fmt(st.eaten)} kcal | Sport ${fmt(st.burned)} kcal | E ${fmt(st.P)} KH ${fmt(st.C)} F ${fmt(st.F)}${st.steps!=null?` | ${fmt(st.steps)} Schritte`:""}`,9)});
-  y+=3;line(`Gerichte (${data.meals.length})`,13,true);data.meals.forEach(m=>line(`${m.name}  ${fmt(m.k100)} kcal/100 g`,9));
+  y+=3;line(`Lebensmittel (${data.meals.length})`,13,true);data.meals.forEach(m=>line(`${m.name}  ${fmt(m.k100)} kcal/100 g`,9));
   y+=3;line(`Routinen (${data.routines.length})`,13,true);data.routines.forEach(r=>line(`${r.name}  ${fmt(r.kcal)} kcal${r.min?` | ${r.min} min`:""}${(r.days||[]).length?" | "+r.days.map(d=>WD[d-1]).join(" "):""}`,9));
   const buf=new Uint8Array(doc.output("arraybuffer"));
   const b64=b64enc(JSON.stringify(pkg));
@@ -1552,7 +1616,7 @@ function restoreSheet(pkg){
       <div><span>Profil</span><span class="num">${esc((pkg.profile&&pkg.profile.name)||"–")}</span></div>
       <div><span>Einträge (Essen, Sport, Schritte)</span><span class="num">${fmt(pkg.food.length)}</span></div>
       <div><span>Gewichte</span><span class="num">${fmt(pkg.weight.length)}</span></div>
-      <div><span>Gerichte · Routinen</span><span class="num">${fmt(pkg.meals.length)} · ${fmt(pkg.routines.length)}</span></div>
+      <div><span>Lebensmittel · Routinen</span><span class="num">${fmt(pkg.meals.length)} · ${fmt(pkg.routines.length)}</span></div>
     </div>
     <p class="hint">Alles aus dem Backup wird in dein Konto zurückgeschrieben. Einträge, die es jetzt schon gibt, bleiben erhalten.</p>
     <button class="btn" id="rsGo">Wiederherstellen</button>
@@ -1692,7 +1756,7 @@ const keepStore=(function(){
   S.me=session.user.id;S.email=session.user.email;S.view=S.me;
   store.init(SB);
   render();readyDone();
-  store.meals(S.me,list=>{S.meals=list});
+  store.meals(S.me,list=>{S.meals=list;if($("#sheet").classList.contains("on")&&sheetCur===openAdd){navBack=true;try{openAdd()}finally{navBack=false}}});
   store.routines(S.me,list=>{S.routines=list;renderPlan()});
   let histFrom=null,histUn=null;
   const subHist=()=>{
