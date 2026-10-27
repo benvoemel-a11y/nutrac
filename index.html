@@ -1600,7 +1600,7 @@ function showLogin(msg){
     const email=$("#lgMail").value.trim(),password=$("#lgPw").value;
     if(!/^\S+@\S+\.\S+$/.test(email)){er.textContent="Bitte eine gültige E-Mail eingeben.";return}
     if(password.length<6){er.textContent="Das Passwort braucht mindestens 6 Zeichen.";return}
-    go.disabled=true;er.textContent="";
+    go.disabled=true;er.textContent="";try{localStorage.setItem("nutrac-last-mail",email)}catch(e){}
     try{
       const r=mode==="in"?await SB.auth.signInWithPassword({email,password}):await SB.auth.signUp({email,password});
       if(r.error)throw r.error;
@@ -1611,13 +1611,30 @@ function showLogin(msg){
       er.textContent=/Invalid login/i.test(m)?"E-Mail oder Passwort stimmt nicht.":/registered/i.test(m)?"Diese E-Mail hat schon ein Konto – bitte anmelden.":/confirm/i.test(m)?"Bitte bestätige zuerst den Link in deiner E-Mail.":navigator.onLine===false?"Kein Internet.":"Hat nicht geklappt: "+m;
       go.disabled=false}
   };
+  try{const lm=localStorage.getItem("nutrac-last-mail");if(lm&&!$("#lgMail").value)$("#lgMail").value=lm}catch(e){}
   go.onclick=submit;$("#lgPw").onkeydown=e=>{if(e.key==="Enter")submit()};
 }
+/* Angemeldet bleiben: Sitzung in localStorage UND in Cookies (1 Jahr).
+   iOS übernimmt Safari-Cookies beim "Zum Home-Bildschirm", so bleibt man auch in der App angemeldet. */
+const keepStore=(function(){
+  const CH=2800,AGE=60*60*24*365,base=`; path=${location.pathname.replace(/[^/]*$/,"")}; max-age=`;
+  const rd=()=>{const o={};document.cookie.split("; ").forEach(c=>{const i=c.indexOf("=");if(i>0)o[c.slice(0,i)]=c.slice(i+1)});return o};
+  const clearC=k=>{const all=rd();Object.keys(all).filter(n=>n===k+"_n"||n.startsWith(k+"_")).forEach(n=>{document.cookie=n+"="+base+"0"})};
+  const setC=(k,v)=>{clearC(k);const e=encodeURIComponent(v);const n=Math.ceil(e.length/CH);for(let i=0;i<n;i++)document.cookie=`${k}_${i}=${e.slice(i*CH,(i+1)*CH)}${base}${AGE}; SameSite=Lax; Secure`;document.cookie=`${k}_n=${n}${base}${AGE}; SameSite=Lax; Secure`};
+  const getC=k=>{const all=rd();const n=+all[k+"_n"]||0;if(!n)return null;let e="";for(let i=0;i<n;i++){if(all[k+"_"+i]==null)return null;e+=all[k+"_"+i]}try{return decodeURIComponent(e)}catch(_){return null}};
+  return{
+    getItem(k){let v=null;try{v=localStorage.getItem(k)}catch(e){}if(v==null){v=getC(k);if(v!=null)try{localStorage.setItem(k,v)}catch(e){}}return v},
+    setItem(k,v){try{localStorage.setItem(k,v)}catch(e){}try{setC(k,v)}catch(e){}},
+    removeItem(k){try{localStorage.removeItem(k)}catch(e){}try{clearC(k)}catch(e){}}
+  };
+})();
 (async function boot(){
   const C=window.NUTRAC_CONFIG||{};
   if(!window.supabase||!C.SUPABASE_URL||/DEIN|YOUR/.test(C.SUPABASE_URL)){showLogin("Nutrac ist noch nicht eingerichtet: Trag in config.js deine Supabase-Adresse und den Schlüssel ein (Anleitung, Schritt 2).");$("#lgGo").disabled=true;return}
-  SB=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  try{if(!keepStore.getItem("nutrac-auth")){const ok=Object.keys(localStorage).find(k=>/^sb-.*-auth-token$/.test(k));if(ok)keepStore.setItem("nutrac-auth",localStorage.getItem(ok))}}catch(e){}
+  SB=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:"nutrac-auth",storage:keepStore}});
   let session=null;try{session=(await SB.auth.getSession()).data.session}catch(e){console.warn(e)}
+  if(!session){try{const raw=keepStore.getItem("nutrac-auth");const j=raw&&JSON.parse(raw);if(j&&j.user&&j.refresh_token){const r=await SB.auth.setSession({access_token:j.access_token,refresh_token:j.refresh_token});session=r.data.session||null;if(!session&&navigator.onLine===false)session=j}}catch(e){console.warn(e)}}
   if(!session){showLogin();return}
   SB.auth.onAuthStateChange((ev)=>{if(ev==="SIGNED_OUT")location.reload()});
   S.me=session.user.id;S.email=session.user.email;S.view=S.me;
