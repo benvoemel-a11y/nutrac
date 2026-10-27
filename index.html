@@ -192,6 +192,14 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .gcalc div:first-child{border-top:0}
 .gcalc .num{font-size:14px;text-align:right;white-space:nowrap}
 .gcalc small{display:block;font-size:12px;color:var(--faint)}
+.reqrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-top:1.5px solid var(--line);padding-top:12px}
+.reqrow .rq{flex:1;min-width:150px}
+.reqrow .rq b{display:block;font-weight:500;font-size:16px}
+.reqrow .rq small{display:block;font-size:13px;color:var(--faint);margin-top:2px}
+.reqrow .rqb{display:flex;gap:8px}
+.reqrow .btn{width:auto;padding:10px 14px;font-size:14px}
+.dots button{position:relative}
+.dots button.badge::after{content:"";position:absolute;top:9px;right:18px;width:9px;height:9px;border-radius:50%;background:var(--alert)}
 .linkdanger{color:var(--alert);font-size:14px;text-align:center;padding:6px}
 .macro b{font-weight:400;font-size:14px}
 .macro .bar{height:6px}
@@ -431,6 +439,13 @@ const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goa
 const KCAL_PER_KG=7000;
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#d93f37"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];document.documentElement.style.setProperty("--wm",c[2])}
+const ADD_ITEMS=[["barcode","Barcode scannen"],["photo","Nährwerttabelle fotografieren"],["manual","Manuell eintragen"],["sport","Sport"],["steps","Schritte"],["weight","Gewicht"],["meals","Gespeicherte Gerichte"]];
+function addOrderOf(p){
+  p=p||{};
+  let l=Array.isArray(p.addOrder)?p.addOrder.filter(x=>x&&ADD_ITEMS.some(a=>a[0]===x.id)).map(x=>({id:x.id,on:x.on!==false})):[];
+  ADD_ITEMS.forEach(([id])=>{if(!l.some(x=>x.id===id))l.push({id,on:true})});
+  return l;
+}
 function layoutOf(p){
   p=p||{};
   let l=Array.isArray(p.layout)?p.layout.filter(x=>x&&BLOCKS.some(b=>b[0]===x.id)).map(x=>({id:x.id,on:x.on!==false})):[];
@@ -467,7 +482,9 @@ const store=(function(){
       sb=client;
       document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh()});
       setInterval(()=>{if(!document.hidden)refresh()},45000);
-      try{sb.channel("docs").on("postgres_changes",{event:"*",schema:"public",table:"docs"},()=>refresh()).subscribe()}catch(e){}
+      try{sb.channel("nutrac").on("postgres_changes",{event:"*",schema:"public",table:"docs"},()=>refresh())
+        .on("postgres_changes",{event:"*",schema:"public",table:"friend_requests"},()=>refresh())
+        .on("postgres_changes",{event:"*",schema:"public",table:"friends"},()=>refresh()).subscribe()}catch(e){}
     },
     get shared(){return true},
     refresh,
@@ -497,6 +514,9 @@ const store=(function(){
       if(!col)return put(uid,"profile","me",null,data);
       return put(uid,col,id,col==="food"||col==="weight"?data.date:null,data);
     },
+    requests(cb){return sub(async()=>{const {data,error}=await sb.rpc("my_friend_requests");if(error)throw error;return data||[]},cb)},
+    async answerRequest(other,accept){const {data,error}=await sb.rpc("answer_friend_request",{other,accept});if(error)throw error;refresh();return data},
+    async cancelRequest(other){const {error}=await sb.rpc("cancel_friend_request",{other});if(error)throw error;refresh()},
     async addFriend(email){const {data,error}=await sb.rpc("add_friend",{friend_email:email});if(error)throw error;refresh();return data},
     async removeFriend(uid){const {error}=await sb.rpc("remove_friend",{friend:uid});if(error)throw error;refresh()}
   };
@@ -796,6 +816,10 @@ const PROFILE_HTML=`
     <div id="pLayout"></div>
   </div>
   <div class="card form">
+    <div class="card-title"><h2>Hinzufügen-Menü</h2><span>Reihenfolge beim +</span></div>
+    <div id="pAddOrder"></div>
+  </div>
+  <div class="card form">
     <div class="card-title"><h2>Für Freunde sichtbar</h2><span>Seite 2</span></div>
     <div style="display:grid;gap:14px" id="pShare">
       <button class="check" data-k="kcal"><i></i>Kalorien + Ziel</button>
@@ -821,7 +845,7 @@ const PROFILE_HTML=`
 const de=v=>v===""||v==null?"":String(v).replace(".",",");
 function fillProfile(){
   const p=S.users[S.me]||{};
-  draft={name:p.name||"",sex:p.sex||"m",age:p.age||"",height:p.height||"",weight:p.weight||latestWeight(S.view===S.me?S.weights:[])||"",act:String(p.act||"1.375"),actMode:p.actMode||"level",stepsDefault:p.stepsDefault||"",goal:p.goal||"lose",delta:p.delta??500,protKg:p.protKg||1.8,fatPct:p.fatPct||25,carbG:p.carbG||"",share:shareOf(p),wmColor:p.wmColor||"schwarz",unit:p.unit||"kg",layout:layoutOf(p),goalKg:p.goalKg||""};
+  draft={name:p.name||"",sex:p.sex||"m",age:p.age||"",height:p.height||"",weight:p.weight||latestWeight(S.view===S.me?S.weights:[])||"",act:String(p.act||"1.375"),actMode:p.actMode||"level",stepsDefault:p.stepsDefault||"",goal:p.goal||"lose",delta:p.delta??500,protKg:p.protKg||1.8,fatPct:p.fatPct||25,carbG:p.carbG||"",share:shareOf(p),wmColor:p.wmColor||"schwarz",unit:p.unit||"kg",layout:layoutOf(p),addOrder:addOrderOf(p),goalKg:p.goalKg||""};
   draft.startKg=p.startKg||"";draft.startDate=p.startDate||keyOf(new Date());
   $("#pGoalKg").value=draft.goalKg?de(Math.round(toU(draft.goalKg,draft.unit)*10)/10):"";
   $("#pStartKg").value=draft.startKg?de(Math.round(toU(draft.startKg,draft.unit)*10)/10):"";
@@ -849,6 +873,8 @@ function renderProfileBits(){
   const GRIP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 8h14M5 12h14M5 16h14"/></svg>';
   $("#pLayout").innerHTML=draft.layout.map((x,i)=>{const lab=BLOCKS.find(b=>b[0]===x.id)[1];
     return `<div class="lrow"><button class="check" data-lt="${x.id}" aria-pressed="${x.on}" ${x.id==="entries"?"disabled":""}><i></i>${lab}</button><button class="grip" data-gi="${i}" aria-label="${lab} verschieben – ziehen oder Pfeiltasten">${GRIP}</button></div>`}).join("");
+  $("#pAddOrder").innerHTML=draft.addOrder.map((x,i)=>{const lab=ADD_ITEMS.find(a=>a[0]===x.id)[1]+(x.id==="steps"&&draft.actMode!=="steps"?" (nur im Schritte-Modus)":"");
+    return `<div class="lrow"><button class="check" data-lt="${x.id}" aria-pressed="${x.on}"><i></i>${lab}</button><button class="grip" data-gi="${i}" aria-label="${lab} verschieben – ziehen oder Pfeiltasten">${GRIP}</button></div>`}).join("");
   document.querySelectorAll("#pShare [data-k]").forEach(x=>x.setAttribute("aria-pressed",String(!!draft.share[x.dataset.k])));
   document.querySelectorAll("#pWm [data-wm]").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.wm===draft.wmColor)));
   setSeg("#pActMode",draft.actMode);$("#actLvlFld").hidden=draft.actMode==="steps";$("#stepsFld").hidden=draft.actMode!=="steps";
@@ -869,6 +895,40 @@ function renderProfileBits(){
   <div><span>Makros</span><span class="num">${fmt(pl.prot)} E · ${fmt(pl.carbs)} KH · ${fmt(pl.fat)} F</span></div>
   ${pl.prot*4+pl.carbs*4+pl.fat*9>pl.target*1.08?`<div><span class="hint" style="color:var(--alert)">Makros ergeben ${fmt(pl.prot*4+pl.carbs*4+pl.fat*9)} kcal – mehr als dein Ziel.</span></div>`:""}`;
 }
+function sortable(PL,getList,canToggle){
+  PL.onclick=e=>{
+    const t=e.target.closest("[data-lt]");if(!t)return;
+    const x=getList().find(q=>q.id===t.dataset.lt);if(x&&canToggle(x)){x.on=!x.on;renderProfileBits()}
+  };
+  const moveTo=(i,to)=>{const L=getList();if(to<0||to>=L.length||to===i)return false;const [it]=L.splice(i,1);L.splice(to,0,it);return true};
+  PL.addEventListener("keydown",e=>{
+    const g=e.target.closest(".grip");if(!g)return;const i=+g.dataset.gi;
+    const to=e.key==="ArrowUp"?i-1:e.key==="ArrowDown"?i+1:null;if(to==null)return;
+    e.preventDefault();if(moveTo(i,to)){renderProfileBits();const n=PL.querySelector(`[data-gi="${to}"]`);n&&n.focus()}
+  });
+  let drag=null;
+  PL.addEventListener("pointerdown",e=>{
+    const g=e.target.closest(".grip");if(!g)return;e.preventDefault();
+    const rows=[...PL.querySelectorAll(".lrow")],i=+g.dataset.gi,rects=rows.map(r=>r.getBoundingClientRect());
+    drag={rows,i,to:i,y0:e.clientY,rects,h:rects[i].height,id:e.pointerId};
+    rows[i].classList.add("dragging");try{g.setPointerCapture(e.pointerId)}catch(_){}
+  });
+  PL.addEventListener("pointermove",e=>{
+    if(!drag||e.pointerId!==drag.id)return;
+    const {rows,i,rects,h}=drag,first=rects[0].top,last=rects[rects.length-1].bottom;
+    const dy=Math.max(first-rects[i].top-h*.4,Math.min(last-rects[i].bottom+h*.4,e.clientY-drag.y0));
+    rows[i].style.transform=`translateY(${dy}px)`;
+    const c=rects[i].top+h/2+dy;let to=0;
+    rects.forEach((r,j)=>{if(j!==i&&r.top+r.height/2<c)to++});
+    drag.to=to;
+    rows.forEach((r,j)=>{if(j===i)return;r.style.transform=(i<j&&j<=to)?`translateY(${-h}px)`:(to<=j&&j<i)?`translateY(${h}px)`:""});
+  });
+  const end=e=>{
+    if(!drag||(e&&e.pointerId!==drag.id))return;
+    const {i,to}=drag;drag=null;moveTo(i,to);renderProfileBits();
+  };
+  PL.addEventListener("pointerup",end);PL.addEventListener("pointercancel",end);
+}
 function openSettings(){
   openSheet("Einstellungen",PROFILE_HTML,b=>{
     fillProfile();
@@ -876,39 +936,8 @@ function openSettings(){
       const x=e.target.closest("button");if(!x)return;readDraft();draft[k]=x.dataset.v;
       if(k==="unit"){$("#pKg").value=draft.weight?de(Math.round(toU(draft.weight,draft.unit)*10)/10):"";$("#pGoalKg").value=draft.goalKg?de(Math.round(toU(draft.goalKg,draft.unit)*10)/10):"";$("#pStartKg").value=draft.startKg?de(Math.round(toU(draft.startKg,draft.unit)*10)/10):""}
       renderProfileBits()}));
-    const PL=b.querySelector("#pLayout");
-    PL.onclick=e=>{
-      const t=e.target.closest("[data-lt]");if(!t)return;
-      const x=draft.layout.find(q=>q.id===t.dataset.lt);if(x&&x.id!=="entries"){x.on=!x.on;renderProfileBits()}
-    };
-    const moveTo=(i,to)=>{if(to<0||to>=draft.layout.length||to===i)return false;const [it]=draft.layout.splice(i,1);draft.layout.splice(to,0,it);return true};
-    PL.addEventListener("keydown",e=>{
-      const g=e.target.closest(".grip");if(!g)return;const i=+g.dataset.gi;
-      const to=e.key==="ArrowUp"?i-1:e.key==="ArrowDown"?i+1:null;if(to==null)return;
-      e.preventDefault();if(moveTo(i,to)){renderProfileBits();const n=PL.querySelector(`[data-gi="${to}"]`);n&&n.focus()}
-    });
-    let drag=null;
-    PL.addEventListener("pointerdown",e=>{
-      const g=e.target.closest(".grip");if(!g)return;e.preventDefault();
-      const rows=[...PL.querySelectorAll(".lrow")],i=+g.dataset.gi,rects=rows.map(r=>r.getBoundingClientRect());
-      drag={rows,i,to:i,y0:e.clientY,rects,h:rects[i].height,id:e.pointerId};
-      rows[i].classList.add("dragging");try{g.setPointerCapture(e.pointerId)}catch(_){}
-    });
-    PL.addEventListener("pointermove",e=>{
-      if(!drag||e.pointerId!==drag.id)return;
-      const {rows,i,rects,h}=drag,first=rects[0].top,last=rects[rects.length-1].bottom;
-      const dy=Math.max(first-rects[i].top-h*.4,Math.min(last-rects[i].bottom+h*.4,e.clientY-drag.y0));
-      rows[i].style.transform=`translateY(${dy}px)`;
-      const c=rects[i].top+h/2+dy;let to=0;
-      rects.forEach((r,j)=>{if(j!==i&&r.top+r.height/2<c)to++});
-      drag.to=to;
-      rows.forEach((r,j)=>{if(j===i)return;r.style.transform=(i<j&&j<=to)?`translateY(${-h}px)`:(to<=j&&j<i)?`translateY(${h}px)`:""});
-    });
-    const end=e=>{
-      if(!drag||(e&&e.pointerId!==drag.id))return;
-      const {i,to}=drag;drag=null;moveTo(i,to);renderProfileBits();
-    };
-    PL.addEventListener("pointerup",end);PL.addEventListener("pointercancel",end);
+    sortable(b.querySelector("#pLayout"),()=>draft.layout,x=>x.id!=="entries");
+    sortable(b.querySelector("#pAddOrder"),()=>draft.addOrder,()=>true);
     b.querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{readDraft();renderProfileBits()}));
     b.querySelector("#bkStatus").textContent=backupText();
     b.querySelector("#acMail").textContent=S.email||"";
@@ -934,7 +963,7 @@ async function saveProfile(){
   const btn=$("#pSave");btn.disabled=true;say("Speichert …");
   await ready;
   const p={...(S.users[S.me]||{}),name:draft.name||"Ich",sex:draft.sex,age:draft.age,height:draft.height,weight:draft.weight,act:num(draft.act),actMode:draft.actMode,stepsDefault:draft.stepsDefault||0,goal:draft.goal,delta:draft.goal==="keep"?(S.users[S.me]?.delta??500):draft.delta,
-    protKg:Math.min(3.5,Math.max(.8,draft.protKg)),fatPct:Math.min(45,Math.max(15,draft.fatPct)),carbG:draft.carbG||0,showMacros:draft.layout.find(x=>x.id==="macros").on,layout:draft.layout.map(x=>({id:x.id,on:x.on})),unit:draft.unit,wmColor:draft.wmColor,goalKg:draft.goal==="keep"?(S.users[S.me]?.goalKg||0):(draft.goalKg||0),
+    protKg:Math.min(3.5,Math.max(.8,draft.protKg)),fatPct:Math.min(45,Math.max(15,draft.fatPct)),carbG:draft.carbG||0,showMacros:draft.layout.find(x=>x.id==="macros").on,layout:draft.layout.map(x=>({id:x.id,on:x.on})),addOrder:draft.addOrder.map(x=>({id:x.id,on:x.on})),unit:draft.unit,wmColor:draft.wmColor,goalKg:draft.goal==="keep"?(S.users[S.me]?.goalKg||0):(draft.goalKg||0),
     startKg:draft.goal==="keep"?(S.users[S.me]?.startKg||0):(draft.goalKg?(draft.startKg||draft.weight):0),startDate:draft.startDate,share:{...draft.share},updated:Date.now()};
   try{
     await store.saveProfile(S.me,p);
@@ -994,13 +1023,28 @@ function friendBody(uid,food,day,detail){
   if(!sh.kcal&&!sh.macros&&!sh.weight&&!sh.entries) h=`<span class="fempty">${esc(p.name||"Diese Person")} teilt gerade keine Werte.</span>`;
   return h;
 }
+S.requests=[];
+function requestsHtml(){
+  const inc=S.requests.filter(r=>r.direction==="in"),out=S.requests.filter(r=>r.direction==="out");
+  if(!inc.length&&!out.length)return"";
+  return `<div class="card" style="display:grid;gap:14px">
+    <div class="card-title"><h2>Anfragen</h2><span>${inc.length?inc.length+" neu":"gesendet"}</span></div>
+    ${inc.map(r=>`<div class="reqrow"><div class="rq"><b>${esc(r.name||"Ohne Namen")}</b><small>${esc(r.email||"")} möchte mit dir befreundet sein</small></div>
+      <div class="rqb"><button class="btn" data-acc="${esc(r.other)}">Annehmen</button><button class="btn ghost" data-dec="${esc(r.other)}">Ablehnen</button></div></div>`).join("")}
+    ${out.map(r=>`<div class="reqrow"><div class="rq"><b>${esc(r.name||r.email||"")}</b><small>Anfrage gesendet${r.name?" an "+esc(r.email||""):""} · wartet auf Bestätigung</small></div>
+      <div class="rqb"><button class="btn ghost" data-can="${esc(r.other)}">Zurückziehen</button></div></div>`).join("")}
+  </div>`;
+}
+function renderReqBadge(){const n=S.requests.filter(r=>r.direction==="in").length;const d=document.querySelector('.dots [data-p="1"]');if(d)d.classList.toggle("badge",n>0)}
 function renderFriends(){
   const el=$("#friends");
   const ids=Object.keys(S.users).filter(id=>id!==S.me&&id!=="local");
-  if(!ids.length){el.innerHTML=`<div class="card"><p class="fline" style="margin:0">Noch keine Freunde hier. Tippe oben auf <b>+</b> und gib die E-Mail ein, mit der sich dein Freund bei Nutrac angemeldet hat. Ihr seht euch dann gegenseitig.</p></div>`;return}
+  renderReqBadge();
+  const RQ=requestsHtml();
+  if(!ids.length){el.innerHTML=RQ+`<div class="card"><p class="fline" style="margin:0">Noch keine Freunde hier. Tippe oben auf <b>+</b> und gib die E-Mail ein, mit der sich dein Freund bei Nutrac angemeldet hat. Sobald er die Anfrage annimmt, seht ihr euch gegenseitig.</p></div>`;return}
   ids.sort((a,b)=>String(S.users[a].name||"").localeCompare(String(S.users[b].name||""),"de"));
   const today=keyOf(new Date());
-  el.innerHTML=ids.map(id=>{
+  el.innerHTML=RQ+ids.map(id=>{
     const p=S.users[id];const pl=plan(p,latestWeight((FR[id]||{weights:[]}).weights));
     const meta=shareOf(p).kcal&&pl?`${p.goal==="lose"?"Abnehmen":p.goal==="gain"?"Zunehmen":"Halten"} · Ziel ${fmt(pl.target)}`:"";
     return `<div class="card fcard" role="button" tabindex="0" data-f="${esc(id)}" aria-label="${esc(p.name||"Freund")} öffnen"><div class="ftop"><span class="fname">${esc(p.name||"Ohne Namen")}</span><span class="fmeta">${meta}</span></div>${friendBody(id,(FR[id]||{food:[]}).food,today,false)}</div>`;
@@ -1036,8 +1080,8 @@ function openFriend(uid){
 function addFriendSheet(){
   openSheet("Freund hinzufügen",`
     <label class="fld"><span>E-Mail deines Freundes</span><input class="in" type="email" inputmode="email" id="frMail" placeholder="angie@mail.com" autocomplete="off"></label>
-    <p class="hint" style="margin:0">Dein Freund muss sich vorher einmal bei Nutrac angemeldet haben. Ihr seht euch dann beide gegenseitig – was jeder zeigt, stellt er im Rädchen unter „Für Freunde sichtbar“ ein.</p>
-    <button class="btn" id="frGo">Hinzufügen</button>
+    <p class="hint" style="margin:0">Dein Freund muss sich vorher einmal bei Nutrac angemeldet haben. Er bekommt eine Anfrage auf Seite 2 und muss sie annehmen – erst dann seht ihr euch gegenseitig.</p>
+    <button class="btn" id="frGo">Anfrage senden</button>
     <p class="hint" id="frStatus" aria-live="polite"></p>`,
   b=>{setTimeout(()=>b.querySelector("#frMail").focus(),350);
     b.querySelector("#frGo").onclick=async e=>{
@@ -1045,8 +1089,12 @@ function addFriendSheet(){
       if(!/^\S+@\S+\.\S+$/.test(m)){st.textContent="Bitte eine gültige E-Mail eingeben.";return}
       if(m===String(S.email||"").toLowerCase()){st.textContent="Das ist deine eigene E-Mail.";return}
       e.currentTarget.disabled=true;st.textContent="Suche …";
-      try{const r=await store.addFriend(m);if(r==="not_found"){st.textContent="Zu dieser E-Mail gibt es noch kein Nutrac-Konto.";e.currentTarget.disabled=false;return}
-        toast("Freund hinzugefügt");closeSheet()}catch(err){console.warn(err);st.textContent="Hat nicht geklappt – bitte nochmal.";e.currentTarget.disabled=false}};
+      const btn=e.currentTarget;
+      try{const r=await store.addFriend(m);
+        if(r==="not_found"){st.textContent="Zu dieser E-Mail gibt es noch kein Nutrac-Konto.";btn.disabled=false;return}
+        if(r==="already"){st.textContent="Ihr seid schon befreundet.";btn.disabled=false;return}
+        if(r==="self"){st.textContent="Das ist deine eigene E-Mail.";btn.disabled=false;return}
+        toast(r==="accepted"?"Ihr seid jetzt befreundet":"Anfrage gesendet");closeSheet()}catch(err){console.warn(err);st.textContent="Hat nicht geklappt – bitte nochmal.";e.currentTarget.disabled=false}};
   });
 }
 function render(){renderToday();renderWeight();renderFriends()}
@@ -1102,6 +1150,9 @@ document.addEventListener("click",e=>{
   if(e.target.closest("#wQuick")){weightQuick();return}
   if(e.target.closest("#wAll")){weightList();return}
   if(e.target.closest("#addFriend")){addFriendSheet();return}
+  const acc=e.target.closest("[data-acc]"),dec=e.target.closest("[data-dec]"),can=e.target.closest("[data-can]");
+  if(acc||dec){const b=acc||dec;b.disabled=true;store.answerRequest((acc||dec).dataset[acc?"acc":"dec"],!!acc).then(r=>toast(acc?"Ihr seid jetzt befreundet":"Anfrage abgelehnt")).catch(err=>{b.disabled=false;writeErr(err)});return}
+  if(can){can.disabled=true;store.cancelRequest(can.dataset.can).then(()=>toast("Anfrage zurückgezogen")).catch(err=>{can.disabled=false;writeErr(err)});return}
   if(e.target.closest("#goalCard")){toggleGoal();return}
   if(e.target.closest("#stepsLink")||e.target.closest("[data-steps]")){if(isMine()&&S.canWrite)stepsForm();return}
   const rm=e.target.closest("#rtMode [data-m]");if(rm){setRoutineMode(rm.dataset.m);return}
@@ -1176,25 +1227,26 @@ const ICON={
 };
 
 function openAdd(){
-  openSheet("Hinzufügen",`
-    <button class="opt" id="optBarcode">${ICON.barcode}<span><b>Barcode scannen</b><small>Werte kommen aus Open Food Facts</small></span></button>
-    <label class="opt">${ICON.scan}<span><b>Nährwerttabelle fotografieren</b><small>Für Produkte ohne Barcode-Treffer</small></span>
-      <input type="file" accept="image/*" id="scanFile" aria-label="Foto der Nährwerttabelle wählen"></label>
-    <button class="opt" id="optManual">${ICON.pen}<span><b>Manuell eintragen</b><small>Werte pro 100 g und Menge</small></span></button>
-    <button class="opt" id="optSport">${ICON.run}<span><b>Sport</b><small>Verbrannte kcal kommen zu den offenen dazu</small></span></button>
-    ${S.users[S.me]&&S.users[S.me].actMode==="steps"?`<button class="opt" id="optSteps">${ICON.steps}<span><b>Schritte</b><small>Schritte des Tages – erhöhen dein Tagesziel</small></span></button>`:""}
-    <button class="opt" id="optWeight">${ICON.scale}<span><b>Gewicht</b><small>Heute oder nachträglich eintragen</small></span></button>
-    <div class="sec"><h4>Gerichte</h4><span>${S.meals.length?S.meals.length+" gespeichert":"noch keine"}</span></div>
+  const p=S.users[S.me]||{};
+  const H={
+    barcode:`<button class="opt" id="optBarcode">${ICON.barcode}<span><b>Barcode scannen</b><small>Werte kommen aus Open Food Facts</small></span></button>`,
+    photo:`<label class="opt">${ICON.scan}<span><b>Nährwerttabelle fotografieren</b><small>Für Produkte ohne Barcode-Treffer</small></span>
+      <input type="file" accept="image/*" id="scanFile" aria-label="Foto der Nährwerttabelle wählen"></label>`,
+    manual:`<button class="opt" id="optManual">${ICON.pen}<span><b>Manuell eintragen</b><small>Werte pro 100 g und Menge</small></span></button>`,
+    sport:`<button class="opt" id="optSport">${ICON.run}<span><b>Sport</b><small>Verbrannte kcal kommen zu den offenen dazu</small></span></button>`,
+    steps:p.actMode==="steps"?`<button class="opt" id="optSteps">${ICON.steps}<span><b>Schritte</b><small>Schritte des Tages – erhöhen dein Tagesziel</small></span></button>`:"",
+    weight:`<button class="opt" id="optWeight">${ICON.scale}<span><b>Gewicht</b><small>Heute oder nachträglich eintragen</small></span></button>`,
+    meals:`<div class="sec"><h4>Gerichte</h4><span>${S.meals.length?S.meals.length+" gespeichert":"noch keine"}</span></div>
     ${S.meals.length?`<div class="card flush"><div class="list">${[...S.meals].sort((a,b)=>String(a.name).localeCompare(String(b.name),"de")).map(m=>{
       const k=Math.round(num(m.k100)*num(m.grams||100)/100);
       return `<button class="row" data-meal="${esc(m.id)}"><span class="t">${fmt(m.grams||100)} g</span><span class="n">${esc(m.name)}<small>${fmt(m.k100)} kcal / 100 g</small></span><span class="k">${fmt(k)}</span></button>`}).join("")}</div></div>`
-    :`<p class="hint">Beim Eintragen „Als Gericht speichern“ antippen – dann taucht es hier auf und ist mit einem Tipp wieder drin.</p>`}`,
+    :`<p class="hint">Beim Eintragen „Als Gericht speichern“ antippen – dann taucht es hier auf und ist mit einem Tipp wieder drin.</p>`}`
+  };
+  const html=addOrderOf(p).filter(x=>x.on).map(x=>H[x.id]).join("\n")||`<p class="hint">Alle Punkte sind ausgeblendet. Im Rädchen unter „Hinzufügen-Menü“ wieder einschalten.</p>`;
+  openSheet("Hinzufügen",html,
   b=>{
-    b.querySelector("#optManual").onclick=()=>foodForm({});
-    b.querySelector("#optBarcode").onclick=barcodeSheet;
-    b.querySelector("#optSport").onclick=sportForm;
-    b.querySelector("#optWeight").onclick=weightQuick;
-    const os=b.querySelector("#optSteps");if(os)os.onclick=stepsForm;
+    const on=(sel,fn)=>{const x=b.querySelector(sel);if(x)x.onclick=fn};
+    on("#optManual",()=>foodForm({}));on("#optBarcode",barcodeSheet);on("#optSport",sportForm);on("#optWeight",weightQuick);on("#optSteps",stepsForm);
     b.querySelectorAll("[data-meal]").forEach(x=>x.onclick=()=>{const m=S.meals.find(q=>q.id===x.dataset.meal);if(m)foodForm({name:m.name,k100:m.k100,p100:m.p100,c100:m.c100,f100:m.f100,grams:m.grams||100,mealId:m.id})});
     const f=b.querySelector("#scanFile");if(f)f.onchange=()=>{if(f.files&&f.files[0])scan(f.files[0])};
   },{reopen:openAdd});
@@ -1651,6 +1703,7 @@ const keepStore=(function(){
   };
   subHist();
   store.users(o=>{S.users=o;subHist();S.view=S.me;syncFriends();render()});
+  store.requests(list=>{S.requests=list;renderFriends()});
   resubscribe();
   if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();
