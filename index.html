@@ -305,6 +305,12 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .btn:disabled{opacity:.45}
 .hint{font-size:13px;color:var(--muted);line-height:1.45}
 .chip{font-family:var(--mono);font-size:12px;border:1.5px solid var(--muted);border-radius:999px;padding:4px 10px}
+.card.fold>.card-title{cursor:pointer;align-items:center;margin:-4px 0;padding:4px 0}
+.card.fold>.card-title::after{content:"";width:9px;height:9px;border:solid var(--muted);border-width:0 2px 2px 0;transform:translateY(-3px) rotate(45deg);transition:transform .25s;flex:none;margin-left:2px}
+.card.fold>.card-title span{margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.card.fold>.card-title h2{flex:none}
+.card.fold.closed>.card-title::after{transform:translateY(1px) rotate(-45deg)}
+.card.fold.closed>:not(.card-title){display:none!important}
 .calc{display:grid;gap:0}
 .calc div{display:flex;justify-content:space-between;padding:12px 0;border-top:1.5px solid var(--line);font-size:15px}
 .calc div:first-child{border-top:0}
@@ -484,7 +490,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="22";
+const APP_VERSION="23";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#d93f37"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4")}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -855,6 +861,7 @@ function bindScrub(svg){
 let draft=null;
 const PROFILE_HTML=`
   <div class="card form">
+    <div class="card-title"><h2>Profil</h2><span>Körper + Ziel</span></div>
     <label class="fld"><span>Name</span><input class="in" id="pName" maxlength="24" placeholder="z. B. Bene" autocomplete="off"></label>
     <div class="fld"><span>Geschlecht</span>
       <div class="seg" id="pSex"><button data-v="m">männlich</button><button data-v="w">weiblich</button></div></div>
@@ -885,7 +892,7 @@ const PROFILE_HTML=`
         <input class="in" type="text" inputmode="numeric" id="pDelta" style="flex:1" autocomplete="off">
         <button class="chip" id="deltaReset">Vorschlag 500</button></div></div>
   </div>
-  <div class="card calc" id="calc"></div>
+  <div class="card form"><div class="card-title"><h2>Tagesziel</h2><span>Berechnung</span></div><div class="calc" id="calc"></div></div>
   <div class="card form">
     <div class="card-title"><h2>Makros</h2><span>KH leer = automatisch</span></div>
     <div class="f3">
@@ -901,15 +908,15 @@ const PROFILE_HTML=`
     <div class="swatches" id="pWm">${WM_COLORS.map(([k,n,h])=>`<button data-wm="${k}">${n}</button>`).join("")}</div>
   </div>
   <div class="card form">
-    <div class="card-title"><h2>Startseite</h2><span>anordnen + ausblenden</span></div>
+    <div class="card-title"><h2>Startseite</h2><span>anordnen</span></div>
     <div id="pLayout"></div>
   </div>
   <div class="card form">
-    <div class="card-title"><h2>Hinzufügen-Menü</h2><span>Reihenfolge beim +</span></div>
+    <div class="card-title"><h2>Plus-Menü</h2><span>Reihenfolge</span></div>
     <div id="pAddOrder"></div>
   </div>
   <div class="card form">
-    <div class="card-title"><h2>Für Freunde sichtbar</h2><span>Seite 2</span></div>
+    <div class="card-title"><h2>Für Freunde</h2><span>sichtbar</span></div>
     <div style="display:grid;gap:14px" id="pShare">
       <button class="check" data-k="kcal"><i></i>Kalorien + Ziel</button>
       <button class="check" data-k="macros"><i></i>Makros</button>
@@ -1065,6 +1072,7 @@ function openSettings(){
     b.querySelector("#deltaReset").onclick=()=>{$("#pDelta").value="500";readDraft();renderProfileBits()};
     b.querySelector("#pSave").onclick=saveProfile;
     notifyMount(b);
+    foldCards(b,"nutrac-fold");
     if(!S.canWrite) say("Du kannst hier nur lesen. Lass dich als Editor einladen, um eigene Daten einzutragen.",true);
   });
 }
@@ -1123,11 +1131,23 @@ function notifyMount(b){
   b.querySelector("#ntBk").onclick=()=>{n.backup=n.backup===false;draw();saveNotify(n)};
   b.querySelector("#ntBkT").onchange=e=>{if(e.target.value){n.backupTime=e.target.value;saveNotify(n)}};
 }
+function foldCards(b,key){
+  let open={};try{open=JSON.parse(localStorage.getItem(key)||"{}")}catch(e){}
+  if(!(S.users[S.me]||{}).age)open.Profil=true;
+  b.querySelectorAll(":scope > .card").forEach(c=>{
+    const t=c.querySelector(":scope > .card-title");if(!t)return;
+    const id=(t.querySelector("h2")||t).textContent.trim();
+    c.classList.add("fold");c.classList.toggle("closed",!open[id]);
+    t.setAttribute("role","button");t.tabIndex=0;t.setAttribute("aria-expanded",String(!!open[id]));
+    const flip=()=>{const o=c.classList.toggle("closed")===false;t.setAttribute("aria-expanded",String(o));open[id]=o;try{localStorage.setItem(key,JSON.stringify(open))}catch(e){}};
+    t.addEventListener("click",flip);t.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();flip()}});
+  });
+}
 function say(m,bad){const st=$("#pStatus");if(!st)return;st.textContent=m;st.style.color=bad?"var(--alert)":"var(--muted)"}
 async function saveProfile(){
   readDraft();
   const miss=[!draft.age&&"Alter",!draft.height&&"Größe",!draft.weight&&"Gewicht"].filter(Boolean);
-  if(miss.length){say("Es fehlt noch: "+miss.join(", ")+".",true);return}
+  if(miss.length){const pc=$("#pName").closest(".card");pc&&pc.classList.remove("closed");say("Es fehlt noch: "+miss.join(", ")+".",true);return}
   if(draft.age<12||draft.age>99){say("Alter bitte zwischen 12 und 99.",true);return}
   if(draft.height<120||draft.height>230){say("Größe bitte in cm, z. B. 166.",true);return}
   if(draft.weight<30||draft.weight>300){say(draft.unit==="lb"?"Gewicht bitte in lb, z. B. 118.":"Gewicht bitte in kg, z. B. 53,5.",true);return}
