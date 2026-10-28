@@ -1,10 +1,10 @@
 // Nutrac Service Worker – hält die App-Dateien offline bereit.
 // Bei jedem Update die Versionsnummer erhöhen, dann holen sich die Handys die neue Version.
-const VERSION = "nutrac-v27";
+const VERSION = "nutrac-v28";
 const SHELL = ["./", "index.html", "config.js", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", e => {
@@ -16,12 +16,20 @@ self.addEventListener("fetch", e => {
   if (e.request.method !== "GET") return;
   // Datenbank, Login und Produktsuche nie aus dem Cache
   if (url.hostname.endsWith("supabase.co") || url.hostname.includes("openfoodfacts")) return;
-  // Eigene Dateien: erst Netz (damit Updates ankommen), sonst Cache
+  // Eigene Dateien: sofort aus dem Speicher (kein weißer Bildschirm beim Start),
+  // im Hintergrund frisch holen. Neue Versionen kommen über die VERSION oben.
   if (url.origin === location.origin) {
+    const net = fetch(e.request, { cache: "no-cache" }).then(r => {
+      if (r.ok) { const copy = r.clone(); caches.open(VERSION).then(c => c.put(e.request, copy)); }
+      return r;
+    });
     e.respondWith(
-      fetch(e.request, { cache: "no-cache" }).then(r => { const copy = r.clone(); caches.open(VERSION).then(c => c.put(e.request, copy)); return r; })
-        .catch(() => caches.match(e.request).then(r => r || caches.match("index.html")))
+      caches.match(e.request, { ignoreSearch: e.request.mode === "navigate" })
+        .then(hit => hit || (e.request.mode === "navigate" ? caches.match("index.html") : null))
+        .then(hit => hit || net)
+        .catch(() => net)
     );
+    e.waitUntil(net.catch(() => {}));
     return;
   }
   // Bibliotheken und Schriften: Cache zuerst

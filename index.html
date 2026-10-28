@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="de" style="background:#8b8b8b">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
@@ -9,12 +9,23 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Nutrac">
 <meta name="theme-color" content="#8b8b8b">
-<script>try{var wc=localStorage.getItem("nutrac-wm");if(wc){document.documentElement.style.setProperty("--wm",wc)}if(localStorage.getItem("nutrac-theme")==="dunkel"){document.documentElement.dataset.theme="dunkel";document.querySelector('meta[name=theme-color]').content="#131313"}}catch(e){}</script>
+<link rel="apple-touch-startup-image" data-s="430x932@3" href="splash/grau-430x932@3.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" data-s="393x852@3" href="splash/grau-393x852@3.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" data-s="390x844@3" href="splash/grau-390x844@3.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" data-s="428x926@3" href="splash/grau-428x926@3.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" data-s="375x812@3" href="splash/grau-375x812@3.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" data-s="414x896@3" href="splash/grau-414x896@3.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" data-s="414x896@2" href="splash/grau-414x896@2.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" data-s="375x667@2" href="splash/grau-375x667@2.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" data-s="402x874@3" href="splash/grau-402x874@3.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" data-s="440x956@3" href="splash/grau-440x956@3.png" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" data-s="320x568@2" href="splash/grau-320x568@2.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<script>try{var wc=localStorage.getItem("nutrac-wm");if(wc){document.documentElement.style.setProperty("--wm",wc)}if(localStorage.getItem("nutrac-theme")==="dunkel"){var R=document.documentElement;R.dataset.theme="dunkel";R.style.background="#131313";document.querySelector('meta[name=theme-color]').content="#131313";document.querySelectorAll("link[data-s]").forEach(function(l){l.href="splash/dunkel-"+l.dataset.s+".png"})}}catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" media="print" onload="this.media='all'">
 <style>
 html{-webkit-text-size-adjust:100%;touch-action:manipulation}
 input[type=date]{font-size:16px!important}
@@ -55,6 +66,7 @@ img{max-width:100%}
   color-scheme:dark;
 }
 html,body{height:100%;overflow:hidden}
+html{background:var(--bg)!important}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
 button,input,select{font:inherit;color:inherit}
 button{background:none;border:0;padding:0;cursor:pointer}
@@ -490,12 +502,12 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="27";
+const APP_VERSION="28";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
 function applyTheme(t){t=t==="dunkel"?"dunkel":"grau";const r=document.documentElement;if(t==="dunkel")r.dataset.theme="dunkel";else delete r.dataset.theme;
-  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==="dunkel"?"#131313":"#8b8b8b";try{localStorage.setItem("nutrac-theme",t)}catch(e){}}
+  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==="dunkel"?"#131313":"#8b8b8b";document.querySelectorAll("link[data-s]").forEach(l=>l.href="splash/"+t+"-"+l.dataset.s+".png");try{localStorage.setItem("nutrac-theme",t)}catch(e){}}
 const ADD_ITEMS=[["saved","Gespeicherte Lebensmittel"],["barcode","Barcode scannen"],["manual","Manuell eintragen"],["sport","Sport"],["weight","Gewicht"]];
 function addOrderOf(p){
   p=p||{};
