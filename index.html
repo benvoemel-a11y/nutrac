@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Nutrac">
 <meta name="theme-color" content="#8b8b8b">
-<script>try{if(localStorage.getItem("nutrac-theme")==="dunkel"){document.documentElement.dataset.theme="dunkel";document.querySelector('meta[name=theme-color]').content="#131313"}}catch(e){}</script>
+<script>try{var wc=localStorage.getItem("nutrac-wm");if(wc){document.documentElement.style.setProperty("--wm",wc)}if(localStorage.getItem("nutrac-theme")==="dunkel"){document.documentElement.dataset.theme="dunkel";document.querySelector('meta[name=theme-color]').content="#131313"}}catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -216,6 +216,12 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .reqrow .rq small{display:block;font-size:13px;color:var(--faint);margin-top:2px}
 .reqrow .rqb{display:flex;gap:8px}
 .reqrow .btn{width:auto;padding:10px 14px;font-size:14px}
+#splash{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;transition:opacity .35s ease}
+#splash.out{opacity:0;pointer-events:none}
+#splash .wordmark{font-size:24px}
+.sbar{width:120px;height:3px;background:var(--track);border-radius:3px;overflow:hidden}
+.sbar i{display:block;width:40%;height:100%;background:var(--ink);border-radius:3px;animation:sbar 1s ease-in-out infinite alternate}
+@keyframes sbar{from{transform:translateX(-20%)}to{transform:translateX(170%)}}
 .frbtn{position:relative}
 .frbtn.badge::after{content:"";position:absolute;top:4px;right:4px;width:11px;height:11px;border-radius:50%;background:var(--alert);border:2px solid var(--bg)}
 .botfade{position:absolute;left:0;right:0;bottom:0;height:calc(28px + env(safe-area-inset-bottom,0px));background:linear-gradient(to bottom,var(--bg0),var(--bg));pointer-events:none;z-index:2}
@@ -380,6 +386,7 @@ button{background:none;border:0;padding:0;cursor:pointer}
 </style>
 </head>
 <body>
+<div id="splash" aria-label="Nutrac lädt" role="status"><span class="wordmark">Nutrac</span><div class="sbar"><i></i></div></div>
 
 <div id="login" hidden>
   <div class="box">
@@ -484,9 +491,9 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="25";
+const APP_VERSION="26";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
-function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4")}
+function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
 function applyTheme(t){t=t==="dunkel"?"dunkel":"grau";const r=document.documentElement;if(t==="dunkel")r.dataset.theme="dunkel";else delete r.dataset.theme;
   const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==="dunkel"?"#131313":"#8b8b8b";try{localStorage.setItem("nutrac-theme",t)}catch(e){}}
@@ -2112,7 +2119,10 @@ document.addEventListener("touchmove",e=>{if(e.touches&&e.touches.length>1)e.pre
 /* ---------- Start ---------- */
 let readyDone;const ready=new Promise(r=>readyDone=r);
 let SB=null;
-function showLogin(msg){
+const T0=Date.now();
+function hideSplash(){const w=600-(Date.now()-T0);if(w>0){setTimeout(hideSplash,w);return}const sp=document.getElementById("splash");if(!sp||sp.classList.contains("out"))return;sp.classList.add("out");setTimeout(()=>sp.remove(),400)}
+setTimeout(hideSplash,8000);
+function showLogin(msg){hideSplash();
   const L=$("#login");L.hidden=false;let mode="in";
   const sw=$("#lgSwitch"),go=$("#lgGo"),er=$("#lgErr");if(msg)er.textContent=msg;
   const setMode=m=>{mode=m;go.textContent=m==="in"?"Anmelden":"Konto erstellen";sw.textContent=m==="in"?"Noch kein Konto? Konto erstellen":"Schon ein Konto? Anmelden";$("#lgPw").autocomplete=m==="in"?"current-password":"new-password";er.textContent=""};
@@ -2172,7 +2182,7 @@ const keepStore=(function(){
   };
   subHist();
   let tzDone=false;
-  store.users(o=>{S.users=o;subHist();S.view=S.me;syncFriends();render();
+  store.users(o=>{S.users=o;subHist();S.view=S.me;syncFriends();render();hideSplash();
     const p=o[S.me];if(!tzDone&&p){tzDone=true;if(p.tz!==myTz())store.saveProfile(S.me,{...p,tz:myTz()}).catch(()=>{})}});
   store.requests(list=>{S.requests=list;renderFriends()});
   resubscribe();
