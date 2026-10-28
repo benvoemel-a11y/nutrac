@@ -559,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="39";
+const APP_VERSION="40";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -2396,7 +2396,8 @@ function parseGarminText(t){
   const N=s=>{s=String(s).replace(/[.,](?=\d{3}\b)/g,"").replace(",",".");return parseFloat(s)};
   const r={};
   // Kalorien: "Aktive Kalorien" bevorzugt, sonst Kalorien gesamt
-  const kc=[];lines.forEach((l,i)=>{if(/kal|kcal|calor/i.test(l)){const near=(l+" "+(lines[i+1]||"")+" "+(lines[i-1]||""));const m=near.match(/(\d{1,2}[.,]?\d{3}|\d{2,4})\s*(?:kcal|kal\b)?/gi);if(m)m.forEach(v=>{const n=N(v);if(n>=5&&n<=8000)kc.push({n,active:/aktiv|active/i.test(l),line:l})})}});
+  const kc=[];const noT=x=>(x||"").replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g," ").replace(/\d+[.,]\d+\s*(km|mi|bpm|\/km)/gi," ").replace(/\d+\s*(bpm|spm|m\b|%)/gi," ");
+  lines.forEach((l,i)=>{if(/kal|kcal|calor/i.test(l)){const near=noT(l)+" "+noT(lines[i-1])+" "+noT(lines[i+1]);const m=near.match(/(\d{1,2}[.,]?\d{3}|\d{2,4})\s*(?:kcal|kal\b)?/gi);if(m)m.forEach(v=>{const n=N(v);if(n>=20&&n<=8000)kc.push({n,active:/aktiv|active/i.test(l),line:l})})}});
   const km=T.match(/(\d{1,2}[.,]?\d{3}|\d{2,4})\s*kcal/i);
   const act=kc.find(k=>k.active);if(act){r.kcal=act.n;r.active=true}else if(kc.length){r.kcal=kc[0].n}else if(km)r.kcal=N(km[1]);
   // Dauer
@@ -2427,9 +2428,9 @@ function garminNear(words){
       else if(dy<0&&-dy<L.h*3&&V.x1>L.x0-L.h&&V.x0<L.x1+L.h)d=-dy*1.5+Math.abs(dx);          // darunter
       if(d!=null&&(!best||d<best.d))best={d,V,L}})});return best};
   const r={};const NUM=/^\d{1,2}[.,]?\d{3}$|^\d{2,4}$/;
-  const a=pick(/^aktiv/i,NUM);const k=a||pick(/^(kalorien|calories|kcal|kal)/i,NUM);
+  const a=pick(/^aktiv/i,NUM);const k=a||pick(/(kalorien|calories|kcal)/i,NUM);
   if(k){const n=parseFloat(k.V.t.replace(/[.,](?=\d{3}$)/,""));if(n>=5&&n<=8000){r.kcal=n;r.active=!!a}}
-  const t=pick(/^(zeit|dauer|time|duration|gesamtzeit)/i,/^\d{1,2}:\d{2}(:\d{2})?$/);
+  const t=pick(/(zeit|dauer|time|duration)/i,/^\d{1,2}:\d{2}(:\d{2})?$/);
   if(t){const q=t.V.t.split(":").map(Number);r.min=Math.round(q.length===3?q[0]*60+q[1]+q[2]/60:q[0]+q[1]/60)}
   return r;
 }
