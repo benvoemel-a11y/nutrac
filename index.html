@@ -482,7 +482,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="19";
+const APP_VERSION="20";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#d93f37"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]))}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -1099,7 +1099,7 @@ function notifyMount(b){
     else{st.textContent="aus";on.textContent="Mitteilungen einschalten";on.hidden=false;hint.textContent="Einmal einschalten und bei der Frage „Erlauben“ tippen."}
   };
   const draw=()=>{
-    b.querySelector("#ntList").innerHTML=n.reminders.length?n.reminders.map((r,i)=>`<div class="nrow" data-i="${i}"><input class="in" type="time" value="${esc(r.t)}" data-f="t"><input class="in" placeholder="Text (optional)" maxlength="40" value="${esc(r.text||"")}" data-f="text" autocomplete="off"><button class="x" data-del="${i}" aria-label="Erinnerung löschen">×</button></div>`).join(""):`<p class="hint" style="margin:0">Noch keine Erinnerung. Mit „+ Erinnerung“ eine Uhrzeit festlegen, z. B. 12:30 und 20:00.</p>`;
+    b.querySelector("#ntList").innerHTML=n.reminders.length?n.reminders.map((r,i)=>`<div class="nrow" data-i="${i}"><input class="in" type="time" value="${esc(r.t)}" data-nf="t"><input class="in" placeholder="Text (optional)" maxlength="40" value="${esc(r.text||"")}" data-nf="text" autocomplete="off"><button class="x" data-del="${i}" aria-label="Erinnerung löschen">×</button></div>`).join(""):`<p class="hint" style="margin:0">Noch keine Erinnerung. Mit „+ Erinnerung“ eine Uhrzeit festlegen, z. B. 12:30 und 20:00.</p>`;
     b.querySelector("#ntFr").setAttribute("aria-pressed",String(n.friends!==false));
     b.querySelector("#ntBk").setAttribute("aria-pressed",String(n.backup!==false));
     const bt=b.querySelector("#ntBkT");bt.value=n.backupTime||"18:00";bt.disabled=n.backup===false;
@@ -1114,9 +1114,9 @@ function notifyMount(b){
     }catch(err){console.warn(err);toast(err&&err.message==="denied"?"Nicht erlaubt – in den iPhone-Einstellungen änderbar":"Einschalten hat nicht geklappt")}
     finally{btn.disabled=false;state()}
   };
-  b.querySelector("#ntAdd").onclick=()=>{n.reminders.push({t:n.reminders.length?"20:00":"12:30",text:""});draw();saveNotify(n);const ins=b.querySelectorAll('#ntList [data-f="t"]');ins[ins.length-1]&&ins[ins.length-1].focus()};
+  b.querySelector("#ntAdd").onclick=()=>{n.reminders.push({t:n.reminders.length?"20:00":"12:30",text:""});draw();saveNotify(n);const ins=b.querySelectorAll('#ntList [data-nf="t"]');ins[ins.length-1]&&ins[ins.length-1].focus()};
   b.querySelector("#ntList").addEventListener("click",e=>{const d=e.target.closest("[data-del]");if(!d)return;n.reminders.splice(+d.dataset.del,1);draw();saveNotify(n)});
-  b.querySelector("#ntList").addEventListener("change",e=>{const row=e.target.closest(".nrow");if(!row)return;const r=n.reminders[+row.dataset.i];if(!r)return;r[e.target.dataset.f]=e.target.dataset.f==="t"?(e.target.value||r.t):e.target.value.trim();n.reminders.sort((a,c)=>a.t.localeCompare(c.t));draw();saveNotify(n)});
+  b.querySelector("#ntList").addEventListener("change",e=>{const row=e.target.closest(".nrow");if(!row)return;const r=n.reminders[+row.dataset.i];if(!r)return;r[e.target.dataset.nf]=e.target.dataset.nf==="t"?(e.target.value||r.t):e.target.value.trim();n.reminders.sort((a,c)=>a.t.localeCompare(c.t));draw();saveNotify(n)});
   b.querySelector("#ntFr").onclick=()=>{n.friends=n.friends===false;draw();saveNotify(n)};
   b.querySelector("#ntBk").onclick=()=>{n.backup=n.backup===false;draw();saveNotify(n)};
   b.querySelector("#ntBkT").onchange=e=>{if(e.target.value){n.backupTime=e.target.value;saveNotify(n)}};
