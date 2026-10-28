@@ -559,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="41";
+const APP_VERSION="42";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -2467,18 +2467,21 @@ function garminConfirm(r,url){
       const k=Math.round(num(b.querySelector("#gAct").value));if(!k){toast("Bitte die Kalorien eintragen");return}
       const d=b.querySelector("#gDate").value||S.day,name=b.querySelector("#gName").value.trim()||"Garmin",min=Math.round(num(b.querySelector("#gMin").value))||0;
       const t=parseKey(d);const now=new Date();t.setHours(now.getHours(),now.getMinutes());
-      try{await store.addFood(S.me,{kind:"sport",date:d,t:d===keyOf(now)?entryTime():t.getTime(),name,kcal:k,min,src:"garmin",kcalTotal:Math.round(num(b.querySelector("#gTot").value))||k});
-        closeSheet();toast(`${name} · + ${fmt(k)} kcal`)}catch(err){writeErr(err)}};
+      const tot=Math.round(num(b.querySelector("#gTot").value))||k;
+      try{await store.setEntry(S.me,`garmin-${d}-${min}-${tot}`,{kind:"sport",date:d,t:d===keyOf(now)?entryTime():t.getTime(),name,kcal:k,min,src:"garmin",kcalTotal:tot});
+        closeSheet();
+        if(d!==S.day){S.day=d;S.view=S.me;resubscribe()}
+        toast(`${name} · + ${fmt(k)} kcal · ${d===keyOf(now)?"heute":parseKey(d).toLocaleDateString("de-DE",{day:"numeric",month:"short"})}`)}catch(err){writeErr(err)}};
   });
 }
 
 /* ---------- Kalender ---------- */
 function weightAt(ws,day){let best=null;for(const w of ws){if(w.date<=day&&(!best||w.date>best.date))best=w}if(!best&&ws.length)best=[...ws].sort((a,b)=>a.date<b.date?-1:1)[0];return best?best.kg:0}
-let CAL={range:91,sel:null,food:[],from:null};
+let CAL={range:56,sel:null,food:[],from:null};
 async function openCalendar(){
   CAL.from=null;CAL.food=[];
   const p=S.users[S.me]||{};const goal=p.goal||"lose";
-  openSheet("Kalender",`<div class="seg calseg" id="calR"><button data-v="28">4 Wo</button><button data-v="91">13 Wo</button><button data-v="365">Jahr</button></div>
+  openSheet("Kalender",`<div class="hint" style="margin:0 0 -4px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;font-size:11px">Letzte 8 Wochen</div>
     <div id="calHm" class="hint">lädt …</div>
     <div class="hm-lg"><span><i class="ok"></i>im Ziel</span>${goal==="keep"?"":`<span><i class="bad"></i>${goal==="gain"?"unter dem Ziel":"über dem Ziel"}</span>`}<span><i></i>nichts eingetragen</span></div>
     <div class="card calsum" id="calSum"></div>
@@ -2490,7 +2493,6 @@ async function openCalendar(){
     };
     const draw=()=>{
       const el=b.querySelector("#calHm");if(!el)return;
-      b.querySelectorAll("#calR button").forEach(x=>x.setAttribute("aria-pressed",String(+x.dataset.v===CAL.range)));
       const today=new Date();today.setHours(12);const tk=keyOf(today);
       const byDay={};CAL.food.forEach(e=>{(byDay[e.date]=byDay[e.date]||[]).push(e)});
       const weeks=Math.ceil(CAL.range/7);
@@ -2527,7 +2529,6 @@ async function openCalendar(){
         <button class="lnk" id="calOpen" style="align-self:flex-end">Tag öffnen →</button>`;
       b.querySelector("#calOpen").onclick=()=>{S.day=k;S.view=S.me;closeSheet();resubscribe()};
     };
-    b.querySelector("#calR").onclick=e=>{const x=e.target.closest("button");if(!x)return;CAL.range=+x.dataset.v;load()};
     b.querySelector("#calHm").addEventListener("click",e=>{const x=e.target.closest("button[data-k]");if(!x)return;CAL.sel=x.dataset.k;draw()});
     CAL.sel=null;load();
   });
