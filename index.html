@@ -310,7 +310,7 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .result{font-family:var(--mono);font-size:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
 .result strong{font-size:30px;font-weight:600}
 
-.toast{position:fixed;left:50%;bottom:calc(80px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--knob);font-family:var(--mono);font-size:13px;padding:10px 16px;border-radius:999px;opacity:0;transition:all .3s;z-index:30;pointer-events:none;max-width:calc(100% - 40px);text-align:center}
+.toast{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));transform:translate(-50%,-20px);background:var(--ink);color:var(--knob);font-family:var(--mono);font-size:13px;padding:10px 16px;border-radius:999px;opacity:0;transition:all .3s;z-index:30;pointer-events:none;max-width:calc(100% - 40px);text-align:center}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 .toast.act{pointer-events:auto;display:flex;align-items:center;gap:14px}
 .toast button{color:var(--knob);font-family:var(--mono);font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
@@ -1622,11 +1622,55 @@ function stepsForm(){
 function openEntry(id){
   const e=S.food.find(x=>x.id===id);if(!e)return;
   const mine=isMine()&&S.canWrite;
-  const det=e.kind==="sport"
-    ?`<div><span>Dauer</span><span class="num">${e.min?fmt(e.min)+" min":"–"}</span></div><div class="total"><span>Verbrannt</span><span class="num">${fmt(e.kcal)} kcal</span></div>`
-    :`<div><span>Menge</span><span class="num">${fmt(e.grams)} g</span></div><div><span>Eiweiß</span><span class="num">${fmt(e.p,1)} g</span></div><div><span>Kohlenhydrate</span><span class="num">${fmt(e.c,1)} g</span></div><div><span>Fett</span><span class="num">${fmt(e.f,1)} g</span></div><div class="total"><span>Energie</span><span class="num">${fmt(e.kcal)} kcal</span></div>`;
-  openSheet(e.name||"Eintrag",`<div class="card calc">${det}</div>${mine?`<button class="btn danger" id="eDel">Löschen</button>`:""}`,
-  b=>{const d=b.querySelector("#eDel");if(d)d.onclick=async()=>{try{await store.delFood(S.me,id);closeSheet();toast("Gelöscht")}catch(err){writeErr(err)}}});
+  if(e.kind==="steps"){if(mine)stepsForm();return}
+  if(!mine){
+    openSheet(e.name||"Eintrag",`<div class="card calc"><div><span>Menge</span><span class="num">${e.kind==="sport"?fmt(e.min)+" min":amountOf(e)}</span></div><div class="total"><span>${e.kind==="sport"?"Verbrannt":"Energie"}</span><span class="num">${fmt(e.kcal)} kcal</span></div></div>`);return}
+  if(e.kind==="sport"){
+    openSheet("Sport bearbeiten",`
+      <label class="fld"><span>Aktivität</span><input class="in" id="esName" maxlength="40" value="${esc(e.name||"")}"></label>
+      <div class="f2">
+        <label class="fld"><span>Dauer min</span><input class="in" type="text" inputmode="numeric" id="esMin" value="${esc(e.min||"")}"></label>
+        <label class="fld"><span>Verbrannt kcal</span><input class="in" type="text" inputmode="numeric" id="esK" value="${esc(e.kcal||"")}"></label>
+      </div>
+      <button class="btn" id="eSave">Speichern</button>
+      <button class="btn danger" id="eDel">Löschen</button>`,
+    b=>{
+      b.querySelector("#eSave").onclick=async()=>{const k=Math.round(num(b.querySelector("#esK").value));if(!k){toast("Bitte die kcal eintragen");return}
+        const {id:_,...rest}=e;
+        try{await store.setEntry(S.me,id,{...rest,name:b.querySelector("#esName").value.trim()||"Sport",min:Math.round(num(b.querySelector("#esMin").value))||0,kcal:k});closeSheet();toast("Gespeichert")}catch(err){writeErr(err)}};
+      b.querySelector("#eDel").onclick=()=>{closeSheet();deleteKey("e:"+id)};
+    });
+    return;
+  }
+  const piece=!!e.qty;
+  const base=piece?e.qty:(e.grams||100);
+  const per=piece?1/base:100/base;
+  const r1=v=>Math.round(num(v)*per*10)/10;
+  openSheet("Eintrag bearbeiten",`
+    <label class="fld"><span>Name</span><input class="in" id="eeName" maxlength="40" value="${esc(e.name||"")}"></label>
+    <label class="fld"><span>${piece?"Anzahl "+esc(e.unitName||"Stück"):"Menge g"}</span><input class="in big-in" type="text" inputmode="decimal" id="eeAmt" value="${esc(piece?de(e.qty):e.grams)}" autocomplete="off"></label>
+    <div class="fld"><span>${piece?"Pro 1 "+esc(e.unitName||"Stück"):"Pro 100 g"}</span>
+      <div class="f4">
+        <label class="fld"><span>kcal</span><input class="in" type="text" inputmode="decimal" id="eeK" value="${esc(de(Math.round(num(e.kcal)*per)))}"></label>
+        <label class="fld"><span>Eiweiß</span><input class="in" type="text" inputmode="decimal" id="eeP" value="${esc(de(r1(e.p)))}"></label>
+        <label class="fld"><span>KH</span><input class="in" type="text" inputmode="decimal" id="eeC" value="${esc(de(r1(e.c)))}"></label>
+        <label class="fld"><span>Fett</span><input class="in" type="text" inputmode="decimal" id="eeF" value="${esc(de(r1(e.f)))}"></label>
+      </div></div>
+    <div class="result" id="eeRes"></div>
+    <button class="btn" id="eSave">Speichern</button>
+    <button class="btn danger" id="eDel">Löschen</button>`,
+  b=>{
+    const $b=x=>b.querySelector(x);
+    const calc=()=>{const a=num($b("#eeAmt").value),f=piece?a:a/100;
+      const r={kcal:Math.round(num($b("#eeK").value)*f),p:Math.round(num($b("#eeP").value)*f*10)/10,c:Math.round(num($b("#eeC").value)*f*10)/10,f:Math.round(num($b("#eeF").value)*f*10)/10};
+      return piece?{qty:Math.round(a*10)/10,...r}:{grams:Math.round(a),...r}};
+    const upd=()=>{const r=calc();$b("#eeRes").innerHTML=`<strong>${fmt(r.kcal)}</strong><span>kcal</span><span style="color:var(--muted)">${fmt(r.p,1)} E · ${fmt(r.c,1)} KH · ${fmt(r.f,1)} F</span>`};
+    b.querySelectorAll("input").forEach(i=>i.addEventListener("input",upd));upd();
+    $b("#eSave").onclick=async()=>{const r=calc();if(piece?!r.qty:!r.grams){toast(piece?"Bitte die Anzahl eintragen":"Bitte die Gramm eintragen");return}
+      const {id:_,...rest}=e;
+      try{await store.setEntry(S.me,id,{...rest,...r,name:$b("#eeName").value.trim()||e.name||"Eintrag"});closeSheet();toast("Gespeichert")}catch(err){writeErr(err)}};
+    $b("#eDel").onclick=()=>{closeSheet();deleteKey("e:"+id)};
+  });
 }
 function openWeight(date){
   const w=S.weights.find(x=>x.date===date);if(!w)return;
