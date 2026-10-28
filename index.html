@@ -526,7 +526,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="32";
+const APP_VERSION="33";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -1155,7 +1155,7 @@ function notifyMount(b){
     const btn=e.currentTarget;btn.disabled=true;
     try{
       const had=await currentSub().catch(()=>null);
-      if(had){const {data:{session}}=await SB.auth.getSession();const r=await fetch(window.NUTRAC_CONFIG.SUPABASE_URL+"/functions/v1/push",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token,apikey:window.NUTRAC_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({type:"test"})});const j=await r.json().catch(()=>({}));toast(j.sent?"Test gesendet – kommt gleich":"Test hat nicht geklappt")}
+      if(had){await savePushSub(had);const {data:{session}}=await SB.auth.getSession();const r=await fetch(window.NUTRAC_CONFIG.SUPABASE_URL+"/functions/v1/push",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token,apikey:window.NUTRAC_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({type:"test"})});const j=await r.json().catch(()=>({}));toast(j.sent?"Test gesendet – kommt gleich":"Test hat nicht geklappt"+(j.error?" ("+j.error+")":""))}
       else{await enablePush();saveNotify(n);toast("Mitteilungen sind an")}
     }catch(err){console.warn(err);toast(err&&err.message==="denied"?"Nicht erlaubt – in den iPhone-Einstellungen änderbar":"Einschalten hat nicht geklappt")}
     finally{btn.disabled=false;state()}
