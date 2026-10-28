@@ -458,6 +458,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
+const APP_VERSION="17";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#d93f37"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];document.documentElement.style.setProperty("--wm",c[2])}
 const ADD_ITEMS=[["saved","Gespeicherte Lebensmittel"],["barcode","Barcode scannen"],["manual","Manuell eintragen"],["sport","Sport"],["weight","Gewicht"]];
@@ -900,6 +901,7 @@ const PROFILE_HTML=`
   </div>
   <div class="card form">
     <div class="card-title"><h2>Konto</h2><span id="acMail"></span></div>
+    <p class="hint" style="margin:0">App-Version ${APP_VERSION}</p>
     <button class="btn ghost" id="acOut">Abmelden</button>
   </div>
   <div class="card form">
@@ -2051,7 +2053,18 @@ const keepStore=(function(){
   store.users(o=>{S.users=o;subHist();S.view=S.me;syncFriends();render()});
   store.requests(list=>{S.requests=list;renderFriends()});
   resubscribe();
-  if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+  if("serviceWorker" in navigator&&location.protocol==="https:"){
+    navigator.serviceWorker.register("sw.js").then(reg=>{
+      const chk=()=>reg.update().catch(()=>{});
+      document.addEventListener("visibilitychange",()=>{if(!document.hidden)chk()});setInterval(chk,60000);
+    }).catch(()=>{});
+    // neue Version da: neu laden, sobald gerade kein Fenster offen ist
+    let pending=false;
+    const tryReload=()=>{if(pending&&!$("#sheet").classList.contains("on"))location.reload()};
+    navigator.serviceWorker.addEventListener("controllerchange",()=>{if(!navigator.serviceWorker.controller)return;pending=true;tryReload()});
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)tryReload()});
+    $("#sheetX").addEventListener("click",()=>setTimeout(tryReload,450));
+  }
 })();
 })();
 </script>
