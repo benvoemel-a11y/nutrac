@@ -746,7 +746,13 @@ function weightSummary(ws){
 function renderWeight(){
   const sm=weightSummary(S.weights);
   $("#wNow").textContent=sm.last?fw(sm.last.kg):"–";$("#wUnit").textContent=UNIT();
-  $("#wDelta").textContent=sm.text;
+  let txt=sm.text;
+  if(sm.sorted.length>1){
+    let inR=sm.sorted;if(S.range){const c=new Date();c.setDate(c.getDate()-S.range);const ck=keyOf(c);inR=sm.sorted.filter(w=>w.date>=ck)}
+    if(inR.length>1){const f=inR[0],l=inR[inR.length-1],d=l.kg-f.kg;
+      txt=`${d>0?"+":d<0?"−":"±"} ${fw(Math.abs(d))} ${UNIT()} seit ${parseKey(f.date).toLocaleDateString("de-DE",{day:"numeric",month:"short",year:f.date.slice(0,4)!==keyOf(new Date()).slice(0,4)?"numeric":undefined})} (${fw(f.kg)} ${UNIT()})`}
+    else if(inR.length===1)txt=`nur ein Eintrag in ${S.range} Tagen`}
+  $("#wDelta").textContent=txt;
   const can=!!(isMine()&&S.canWrite&&S.me);
   $("#wQuick").hidden=!can;
   $("#wAll").hidden=!sm.sorted.length;
