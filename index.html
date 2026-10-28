@@ -559,13 +559,13 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="45";
+const APP_VERSION="46";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
 function applyTheme(t){t=t==="dunkel"?"dunkel":"grau";const r=document.documentElement;if(t==="dunkel")r.dataset.theme="dunkel";else delete r.dataset.theme;
   const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==="dunkel"?"#131313":"#8b8b8b";document.querySelectorAll("link[data-s]").forEach(l=>l.href="splash/"+t+"-"+l.dataset.s+".png");try{localStorage.setItem("nutrac-theme",t)}catch(e){}}
-const ADD_ITEMS=[["saved","Gespeicherte Lebensmittel"],["barcode","Barcode scannen"],["manual","Manuell eintragen"],["sport","Sport"],["weight","Gewicht"]];
+const ADD_ITEMS=[["saved","Gespeicherte Lebensmittel"],["barcode","Barcode scannen"],["manual","Manuell eintragen"],["sport","Aktivität"],["weight","Gewicht"]];
 function addOrderOf(p){
   p=p||{};
   let l=Array.isArray(p.addOrder)?p.addOrder.map(x=>x&&x.id==="meals"?{...x,id:"saved"}:x).filter(x=>x&&ADD_ITEMS.some(a=>a[0]===x.id)).map(x=>({id:x.id,on:x.on!==false})):[];
@@ -752,7 +752,7 @@ function renderToday(){
   if(!all.length&&!extraRows){el.innerHTML=`<div class="empty">${isMine()?"Noch nichts eingetragen. Tipp auf + und scanne die Nährwerttabelle auf der Rückseite.":"An diesem Tag noch nichts eingetragen."}</div>`;return}
   el.innerHTML=all.map(e=>{
     const tm=e.t?new Date(e.t).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):"";
-    const sub=e.kind==="sport"?(e.min?`${fmt(e.min)} min`:"Sport"):`${amountOf(e)} · ${fmt(e.p)} E · ${fmt(e.c)} KH · ${fmt(e.f)} F`;
+    const sub=e.kind==="sport"?(e.min?`${fmt(e.min)} min`:e.steps?"Schritte":"Sport"):`${amountOf(e)} · ${fmt(e.p)} E · ${fmt(e.c)} KH · ${fmt(e.f)} F`;
     return SW("e:"+esc(e.id),`<button class="row${e.kind==="sport"?" sport":""}" data-e="${esc(e.id)}"><span class="t">${tm}</span><span class="n">${esc(e.name||"Eintrag")}<small>${sub}</small></span><span class="k">${fmt(e.kcal)}</span></button>`);
   }).join("")+extraRows;
 }
@@ -1567,7 +1567,7 @@ function openAdd(){
     saved:`<button class="opt" id="optSaved">${ICON.saved}<span><b>Gespeicherte Lebensmittel</b><small>${ms.length?ms.length+" gespeichert · nur Gramm oder Anzahl eingeben":"Toast, Hähnchen & Co. einmal anlegen"}</small></span></button>`,
     barcode:`<button class="opt" id="optBarcode">${ICON.barcode}<span><b>Barcode scannen</b><small>Werte kommen aus Open Food Facts</small></span></button>`,
     manual:`<button class="opt" id="optManual">${ICON.pen}<span><b>Manuell eintragen</b><small>Werte pro 100 g und Menge</small></span></button>`,
-    sport:`<button class="opt" id="optSport">${ICON.run}<span><b>Sport</b><small>Verbrannte kcal kommen zu den offenen dazu</small></span></button>`,
+    sport:`<button class="opt" id="optSport">${ICON.run}<span><b>Aktivität</b><small>Sport und extra Schritte – kcal kommen zu den offenen dazu</small></span></button>`,
     weight:`<button class="opt" id="optWeight">${ICON.scale}<span><b>Gewicht</b><small>Heute oder nachträglich eintragen</small></span></button>`
   };
   const html=(addOrderOf(p).filter(x=>x.on).map(x=>H[x.id]).join("\n")||`<p class="hint">Alle Punkte sind ausgeblendet.</p>`)
@@ -1844,12 +1844,16 @@ function entryTime(){const now=new Date();if(S.day===keyOf(now))return now.getTi
 const PEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m14 6 4 4"/></svg>';
 function sportForm(){
   const rs=[...S.routines].sort((a,b)=>String(a.name).localeCompare(String(b.name),"de"));
-  openSheet("Sport",`
-    <div class="sec"><h4>Routinen</h4><span>${rs.length?"Tippen = eintragen":"noch keine"}</span></div>
+  openSheet("Aktivität",`
+    <div class="sec"><h4>Extra Schritte</h4><span>zusätzlich gegangen</span></div>
+    <div class="f2"><label class="fld"><span>Schritte</span><input class="in" type="text" inputmode="numeric" id="xSteps" placeholder="z. B. 1800" autocomplete="off"></label>
+    <div class="fld"><span>Verbrannt</span><div class="in" id="xK" style="display:flex;align-items:center;color:var(--muted)">– kcal</div></div></div>
+    <button class="btn ghost" id="xAdd">Schritte hinzufügen</button>
+    <div class="sec"><h4>Sport-Routinen</h4><span>${rs.length?"Tippen = eintragen":"noch keine"}</span></div>
     ${rs.length?`<div class="card flush"><div class="list">${rs.map(r=>`<div class="rtrow"><button class="row" data-rtadd="${esc(r.id)}"><span class="t">${r.min?fmt(r.min)+"′":""}</span><span class="n">${esc(r.name)}<small>${(r.days||[]).length?(r.days||[]).sort().map(d=>WD[d-1]).join(" "):"ohne feste Tage"}</small></span><span class="k">+ ${fmt(r.kcal)}</span></button><button class="ed" data-rted="${esc(r.id)}" aria-label="${esc(r.name)} bearbeiten">${PEN}</button></div>`).join("")}</div></div>`
       :`<p class="hint">Speichere Einheiten wie „Gym Push · 60 min · 350 kcal“. Mit festen Tagen erscheinen sie auf Heute zum Abhaken.</p>`}
     <button class="btn ghost" id="rtNew">Neue Routine</button>
-    <div class="sec"><h4>Einmalig</h4><span>ohne Routine</span></div>
+    <div class="sec"><h4>Sport einmalig</h4><span>ohne Routine</span></div>
     <label class="fld"><span>Aktivität</span><input class="in" id="sName" maxlength="40" placeholder="z. B. Laufen"></label>
     <div class="f2">
       <label class="fld"><span>Dauer min</span><input class="in" type="text" inputmode="numeric" id="sMin" placeholder="30"></label>
@@ -1857,10 +1861,6 @@ function sportForm(){
     </div>
     <p class="hint">Die kcal z. B. von der Uhr übernehmen. Sie werden zu deinem Tagesziel addiert.</p>
     <button class="btn" id="sAdd">Hinzufügen</button>
-    <div class="sec"><h4>Extra Schritte</h4><span>zusätzlich gegangen</span></div>
-    <div class="f2"><label class="fld"><span>Schritte</span><input class="in" type="text" inputmode="numeric" id="xSteps" placeholder="z. B. 1800" autocomplete="off"></label>
-    <div class="fld"><span>Verbrannt</span><div class="in" id="xK" style="display:flex;align-items:center;color:var(--muted)">– kcal</div></div></div>
-    <button class="btn ghost" id="xAdd">Schritte hinzufügen</button>
     <div class="sec"><h4>Aus einer App</h4><span>Foto oder Datei</span></div>
     <label class="btn ghost" style="position:relative;cursor:pointer">Foto oder Datei übernehmen<input type="file" accept="image/*,application/pdf,.pdf" id="sGarmin" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%"></label>
     <p class="hint" style="margin:0">Screenshot oder PDF einer Einheit aus Garmin, Apple Fitness, Strava, Polar & Co. – Sportart, Dauer und Kalorien werden ausgelesen.</p>`,
