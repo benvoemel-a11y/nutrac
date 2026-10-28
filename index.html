@@ -1257,6 +1257,7 @@ const ICON={
   scan:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9h8M8 12h8M8 15h5"/></svg>',
   pen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m14 6 4 4"/></svg>',
   run:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="15" cy="4.5" r="1.8"/><path d="m8 21 3-6 3 2v4M6 12l3-4h4l3 4 3 1M11 15l2-5"/></svg>',
+  saved:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4.5L5 21V4.5a1 1 0 0 1 1-1Z"/></svg>',
   barcode:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"/><path d="M7 8v8M10 8v8M12.5 8v8M15 8v8M17 8v8"/></svg>',
   steps:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3c2 0 3 2 3 5s-1 5-3 5-3-2-3-5 1-5 3-5ZM5.5 15.5l5 .8-.6 3.2a2.5 2.5 0 0 1-5-.8l.6-3.2ZM16 7c2 0 3 2 3 5s-1 5-3 5-3-2-3-5 1-5 3-5Z"/></svg>',
   scale:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8.5 9a5 5 0 0 1 7 0M12 9.5l1.2-2"/></svg>'
@@ -1269,13 +1270,7 @@ function openAdd(){
   const p=S.users[S.me]||{};
   const ms=[...S.meals].sort((a,b)=>String(a.name).localeCompare(String(b.name),"de"));
   const H={
-    saved:`<div class="card flush savedbox">
-      <div class="svhead"><div class="card-title"><h2>Gespeichert</h2><span>${ms.length?ms.length+" Lebensmittel":"noch leer"}</span></div>
-      ${ms.length>5?`<input class="in" id="svSearch" type="search" placeholder="Suchen …" autocomplete="off">`:""}</div>
-      <div class="list">
-      ${ms.map(m=>`<button class="row" data-meal="${esc(m.id)}" data-name="${esc(String(m.name).toLowerCase())}"><span class="t">${fmt(mealKcal(m))}</span><span class="n">${esc(m.name)}<small>${mealLine(m)}</small></span><span class="k">›</span></button>`).join("")}
-      <button class="row newrow" id="mealNew"><span class="t">+</span><span class="n">Neues Lebensmittel speichern<small>pro 100 g oder pro Stück</small></span><span class="k">›</span></button>
-      </div></div>`,
+    saved:`<button class="opt" id="optSaved">${ICON.saved}<span><b>Gespeicherte Lebensmittel</b><small>${ms.length?ms.length+" gespeichert · nur Gramm oder Anzahl eingeben":"Toast, Hähnchen & Co. einmal anlegen"}</small></span></button>`,
     barcode:`<button class="opt" id="optBarcode">${ICON.barcode}<span><b>Barcode scannen</b><small>Werte kommen aus Open Food Facts</small></span></button>`,
     manual:`<button class="opt" id="optManual">${ICON.pen}<span><b>Manuell eintragen</b><small>Werte pro 100 g und Menge</small></span></button>`,
     sport:`<button class="opt" id="optSport">${ICON.run}<span><b>Sport</b><small>Verbrannte kcal kommen zu den offenen dazu</small></span></button>`,
@@ -1287,10 +1282,21 @@ function openAdd(){
   b=>{
     const on=(sel,fn)=>{const x=b.querySelector(sel);if(x)x.onclick=fn};
     on("#optManual",()=>foodForm({}));on("#optBarcode",()=>barcodeSheet());on("#optSport",sportForm);on("#optWeight",weightQuick);
-    on("#mealNew",()=>mealForm(null));on("#addArrange",arrangeSheet);
+    on("#optSaved",savedSheet);on("#addArrange",arrangeSheet);
+  },{reopen:openAdd});
+}
+function savedSheet(){
+  const ms=[...S.meals].sort((a,b)=>String(a.name).localeCompare(String(b.name),"de"));
+  openSheet("Gespeichert",`
+    ${ms.length>5?`<input class="in" id="svSearch" type="search" placeholder="Suchen …" autocomplete="off">`:""}
+    ${ms.length?`<div class="card flush"><div class="list">${ms.map(m=>`<button class="row" data-meal="${esc(m.id)}" data-name="${esc(String(m.name).toLowerCase())}"><span class="t">${fmt(mealKcal(m))}</span><span class="n">${esc(m.name)}<small>${mealLine(m)}</small></span><span class="k">›</span></button>`).join("")}</div></div>`
+      :`<p class="hint" style="margin:0">Noch nichts gespeichert. Leg Lebensmittel einmal an – pro 100 g (z. B. Hähnchenbrust) oder pro Stück (z. B. 1 Toast = 50 kcal). Danach gibst du nur noch die Gramm oder die Anzahl ein.</p>`}
+    <button class="opt" id="mealNew">${ICON.pen}<span><b>Neues Lebensmittel speichern</b><small>pro 100 g oder pro Stück · auch per Barcode</small></span></button>`,
+  b=>{
+    b.querySelector("#mealNew").onclick=()=>mealForm(null);
     b.querySelectorAll("[data-meal]").forEach(x=>x.onclick=()=>{const m=S.meals.find(q=>q.id===x.dataset.meal);if(m)quickMeal(m)});
     const sv=b.querySelector("#svSearch");if(sv)sv.addEventListener("input",()=>{const q=sv.value.trim().toLowerCase();b.querySelectorAll("[data-meal]").forEach(x=>{x.hidden=!!q&&!x.dataset.name.includes(q)})});
-  },{reopen:openAdd});
+  },{reopen:savedSheet});
 }
 function arrangeSheet(){
   const list=addOrderOf(S.users[S.me]).map(x=>({...x}));
@@ -1927,7 +1933,7 @@ const keepStore=(function(){
   S.me=session.user.id;S.email=session.user.email;S.view=S.me;
   store.init(SB);
   render();readyDone();
-  store.meals(S.me,list=>{S.meals=list;if($("#sheet").classList.contains("on")&&sheetCur===openAdd){navBack=true;try{openAdd()}finally{navBack=false}}});
+  store.meals(S.me,list=>{S.meals=list;if($("#sheet").classList.contains("on")&&(sheetCur===openAdd||sheetCur===savedSheet)){const f=sheetCur;navBack=true;try{f()}finally{navBack=false}}});
   store.routines(S.me,list=>{S.routines=list;renderPlan()});
   let histFrom=null,histUn=null;
   const subHist=()=>{
