@@ -240,14 +240,16 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .sbar{width:120px;height:3px;background:var(--track);border-radius:3px;overflow:hidden}
 .sbar i{display:block;width:40%;height:100%;background:var(--ink);border-radius:3px;animation:sbar 1s ease-in-out infinite alternate}
 @keyframes sbar{from{transform:translateX(-20%)}to{transform:translateX(170%)}}
-#invite{position:fixed;inset:0;z-index:40;background:#fff;color:#111;font-family:-apple-system,"SF Pro Display","Helvetica Neue",Arial,sans-serif;display:flex;flex-direction:column;align-items:center;text-align:center;padding:calc(env(safe-area-inset-top,0px) + 18vh) 28px calc(env(safe-area-inset-bottom,0px) + 28px);box-sizing:border-box}
+#invite{position:fixed;inset:0;z-index:40;background:#131313;color:#ececec;font-family:var(--mono);display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:calc(env(safe-area-inset-top,0px) + 16vh) 28px calc(env(safe-area-inset-bottom,0px) + 28px);box-sizing:border-box}
 #invite[hidden]{display:none}
-.iv-ic{width:84px;height:84px;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,.16)}
-#invite h1{font-size:30px;font-weight:700;letter-spacing:-.02em;margin:30px 0 0;line-height:1.15}
-#invite p{font-size:17px;color:#6e6e73;margin:12px 0 0;line-height:1.4}
-.iv-foot{margin-top:auto;width:100%;max-width:420px}
-.iv-btn{width:100%;background:#111;color:#fff;border-radius:999px;padding:17px;font-size:17px;font-weight:600}
-.iv-alt{margin-top:16px;color:#6e6e73;font-size:15px}
+.iv-ic{width:96px;height:96px;border-radius:22px;box-shadow:0 0 0 1.5px #2a2a2a}
+.iv-k{font-size:12px;letter-spacing:.3em;color:#8a8a8a;margin-top:34px}
+#invite h1{font-size:34px;font-weight:600;margin:12px 0 0;line-height:1.12;letter-spacing:-.01em}
+#invite h1 i{font-style:normal;color:#e5524a}
+#invite p{font-family:var(--sans);font-size:16px;color:#9a9a9a;margin:14px 0 0;line-height:1.45}
+.iv-foot{margin-top:auto;width:100%;max-width:420px;align-self:center}
+.iv-btn{width:100%;background:#ececec;color:#131313;border-radius:999px;padding:17px;font-family:var(--mono);font-size:16px;font-weight:600}
+.iv-alt{display:block;margin:16px auto 0;color:#9a9a9a;font-family:var(--sans);font-size:15px}
 .iv-btn:active,.iv-alt:active{opacity:.7}
 .frbtn{position:relative}
 .frbtn.badge::after{content:"";position:absolute;top:4px;right:4px;width:11px;height:11px;border-radius:50%;background:var(--alert);border:2px solid var(--bg)}
@@ -416,9 +418,10 @@ button{background:none;border:0;padding:0;cursor:pointer}
 
 <div id="invite" hidden>
   <img src="icons/icon-180.png" alt="" class="iv-ic">
-  <h1 id="ivTitle">Du wurdest eingeladen</h1>
-  <p id="ivSub">Tracke Kalorien und Gewicht – gemeinsam.</p>
-  <div class="iv-foot"><button class="iv-btn" id="ivYes">Annehmen</button><button class="iv-alt" id="ivHave">Ich habe schon ein Konto</button></div>
+  <div class="iv-k">EINLADUNG</div>
+  <h1>Gemeinsam<br>tracken<i>.</i></h1>
+  <p id="ivSub">Du wurdest zu Nutrac eingeladen – Kalorien, Gewicht und Sport, zusammen.</p>
+  <div class="iv-foot"><button class="iv-btn" id="ivYes">Annehmen →</button><button class="iv-alt" id="ivHave">Ich habe schon ein Konto</button></div>
 </div>
 <div id="login" hidden>
   <div class="box">
@@ -523,7 +526,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="31";
+const APP_VERSION="32";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -2213,8 +2216,8 @@ let INV=null;try{const q=new URLSearchParams(location.search).get("e");if(q&&/^[
 const clearInv=()=>{INV=null;try{localStorage.removeItem(INV_KEY)}catch(e){}};
 async function showInvite(){
   const V=$("#invite");V.hidden=false;let who=null;
-  try{const {data}=await SB.rpc("invite_info",{code:INV});if(data){who=data.name;if(!data.valid){$("#ivTitle").textContent="Diese Einladung ist abgelaufen";$("#ivSub").textContent=`Frag ${who||"deinen Freund"} nach einem neuen Link – oder schau dir Nutrac trotzdem an.`;$("#ivYes").textContent="Zu Nutrac";clearInv();who=null}}}catch(e){console.warn(e)}
-  if(who){$("#ivTitle").textContent=`${who} hat dich eingeladen`;$("#ivSub").textContent=`Tracke Kalorien und Gewicht – gemeinsam mit ${who}.`}
+  try{const {data}=await SB.rpc("invite_info",{code:INV});if(data){who=data.name;if(!data.valid){$("#ivSub").textContent=`Diese Einladung ist abgelaufen. Frag ${who||"deinen Freund"} nach einem neuen Link – oder schau dir Nutrac trotzdem an.`;$("#ivYes").textContent="Zu Nutrac →";clearInv();who=null}}}catch(e){console.warn(e)}
+  if(who){$("#ivSub").textContent=`${who} hat dich zu Nutrac eingeladen – Kalorien, Gewicht und Sport, zusammen.`}
   const go=mode=>{V.hidden=true;showLogin();if(INV)$("#lgIntro").textContent=`Einladung von ${who||"deinem Freund"} – nach der Anmeldung seid ihr direkt befreundet.`;if(mode==="up")$("#lgSwitch").click()};
   $("#ivYes").onclick=()=>go("up");$("#ivHave").onclick=()=>go("in");
 }
