@@ -1496,12 +1496,15 @@ function mealForm(m,pre,o){
   },o);
 }
 function foodForm(v,o){
+  let mode=v.unit==="piece"?"piece":"g";
   openSheet(v.mealId?"Lebensmittel":v.preview?"Gescannt":"Manuell",`
     ${v.preview?`<img class="thumb" src="${v.preview}" alt="Dein Foto" style="max-height:120px">`:""}
     ${v.estimate?`<p class="hint">Keine Tabelle gefunden – Werte aus dem Foto geschätzt. Bitte prüfen.</p>`:""}
-    <label class="fld"><span>Name</span><input class="in" id="fName" maxlength="40" value="${esc(v.name||"")}" placeholder="z. B. Skyr Natur"></label>
-    <label class="fld"><span>Menge g</span><input class="in big-in" type="text" inputmode="decimal" id="fGrams" value="${esc(v.grams??"")}" placeholder="100"></label>
-    <div class="fld"><span>Pro 100 g</span>
+    <label class="fld"><span>Name</span><input class="in" id="fName" maxlength="40" value="${esc(v.name||"")}" placeholder="z. B. Skyr Natur, Toast"></label>
+    <div class="fld"><span>Rechnen</span><div class="seg" id="fMode"><button data-v="g">pro 100 g</button><button data-v="piece">pro Stück</button></div></div>
+    <label class="fld" id="fPieceFld"><span>Was ist 1 Stück?</span><input class="in" id="fPiece" maxlength="20" value="${esc(v.pieceName||"")}" placeholder="z. B. Toast, Keks, Scheibe" autocomplete="off"></label>
+    <label class="fld"><span id="fAmtLab">Menge g</span><input class="in big-in" type="text" inputmode="decimal" id="fGrams" value="${esc(mode==="piece"?(v.qty??1):(v.grams??""))}" placeholder="100"></label>
+    <div class="fld"><span id="fPerLab">Pro 100 g</span>
       <div class="f4">
         <label class="fld"><span>kcal</span><input class="in" type="text" inputmode="decimal" id="fK" value="${esc(v.k100??"")}"></label>
         <label class="fld"><span>Eiweiß</span><input class="in" type="text" inputmode="decimal" id="fP" value="${esc(v.p100??"")}"></label>
@@ -1513,21 +1516,31 @@ function foodForm(v,o){
     <button class="btn" id="fAdd">Hinzufügen</button>
     ${v.mealId?`<button class="linkdanger" id="fDelMeal">Lebensmittel aus der Liste löschen</button>`:""}`,
   b=>{
-    const g=()=>{const gr=num(b.querySelector("#fGrams").value),f=gr/100;
-      return{grams:gr,kcal:Math.round(num(b.querySelector("#fK").value)*f),p:Math.round(num(b.querySelector("#fP").value)*f*10)/10,c:Math.round(num(b.querySelector("#fC").value)*f*10)/10,f:Math.round(num(b.querySelector("#fF").value)*f*10)/10}};
-    const upd=()=>{const r=g();b.querySelector("#fRes").innerHTML=`<strong>${fmt(r.kcal)}</strong><span>kcal</span><span style="color:var(--muted)">${fmt(r.p,1)} E · ${fmt(r.c,1)} KH · ${fmt(r.f,1)} F</span>`};
-    b.querySelectorAll("input").forEach(i=>i.addEventListener("input",upd));upd();
-    if(!v.grams) setTimeout(()=>b.querySelector(v.name?"#fGrams":"#fName").focus(),350);
-    const keep=b.querySelector("#fKeep");if(keep)keep.onclick=()=>keep.setAttribute("aria-pressed",String(keep.getAttribute("aria-pressed")!=="true"));
-    const dm=b.querySelector("#fDelMeal");if(dm)dm.onclick=async()=>{try{await store.delMeal(S.me,v.mealId);closeSheet();toast("Lebensmittel gelöscht")}catch(err){writeErr(err)}};
-    b.querySelector("#fAdd").onclick=async()=>{
-      const r=g();const name=b.querySelector("#fName").value.trim()||"Eintrag";
-      if(!r.grams){toast("Bitte die Menge in Gramm eintragen");return}
-      if(!num(b.querySelector("#fK").value)){toast("Bitte kcal pro 100 g eintragen");return}
+    const $b=id=>b.querySelector(id);
+    const pn=()=>$b("#fPiece").value.trim()||"Stück";
+    const vals=()=>({k:num($b("#fK").value),p:num($b("#fP").value),c:num($b("#fC").value),f:num($b("#fF").value)});
+    const g=()=>{const amt=num($b("#fGrams").value),x=vals(),f=mode==="piece"?amt:amt/100;
+      const r={kcal:Math.round(x.k*f),p:Math.round(x.p*f*10)/10,c:Math.round(x.c*f*10)/10,f:Math.round(x.f*f*10)/10};
+      return mode==="piece"?{qty:Math.round(amt*10)/10,unitName:pn(),grams:0,...r}:{grams:amt,...r}};
+    const upd=()=>{const r=g();$b("#fRes").innerHTML=`<strong>${fmt(r.kcal)}</strong><span>kcal</span><span style="color:var(--muted)">${fmt(r.p,1)} E · ${fmt(r.c,1)} KH · ${fmt(r.f,1)} F</span>`};
+    const paint=()=>{setSeg("#fMode",mode);$b("#fPieceFld").hidden=mode!=="piece";
+      $b("#fAmtLab").textContent=mode==="piece"?"Anzahl "+pn():"Menge g";$b("#fGrams").placeholder=mode==="piece"?"1":"100";
+      $b("#fPerLab").textContent=mode==="piece"?"Pro 1 "+pn():"Pro 100 g";upd()};
+    $b("#fMode").onclick=e=>{const x=e.target.closest("button");if(!x||x.dataset.v===mode)return;mode=x.dataset.v;
+      const a=$b("#fGrams");if(mode==="piece"&&num(a.value)>=20)a.value="1";if(mode==="g"&&num(a.value)<20)a.value="";paint()};
+    b.querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{if(i.id==="fPiece")paint();else upd()}));paint();
+    if(!v.grams) setTimeout(()=>$b(v.name?"#fGrams":"#fName").focus(),350);
+    const keep=$b("#fKeep");if(keep)keep.onclick=()=>keep.setAttribute("aria-pressed",String(keep.getAttribute("aria-pressed")!=="true"));
+    const dm=$b("#fDelMeal");if(dm)dm.onclick=async()=>{try{await store.delMeal(S.me,v.mealId);closeSheet();toast("Lebensmittel gelöscht")}catch(err){writeErr(err)}};
+    $b("#fAdd").onclick=async()=>{
+      const r=g();const name=$b("#fName").value.trim()||"Eintrag";const x=vals();
+      if(mode==="piece"?!r.qty:!r.grams){toast(mode==="piece"?"Bitte die Anzahl eintragen":"Bitte die Menge in Gramm eintragen");return}
+      if(!x.k){toast(mode==="piece"?"Bitte kcal pro Stück eintragen":"Bitte kcal pro 100 g eintragen");return}
+      const meal=mode==="piece"?{name,unit:"piece",pieceName:pn(),kp:x.k,pp:x.p,cp:x.c,fp:x.f,count:r.qty}:{name,unit:"g",grams:r.grams,k100:x.k,p100:x.p,c100:x.c,f100:x.f};
       try{
         await store.addFood(S.me,{kind:"food",date:S.day,t:entryTime(),name,...r});
-        if(v.mealId){const vals={name,grams:r.grams,k100:num(b.querySelector("#fK").value),p100:num(b.querySelector("#fP").value),c100:num(b.querySelector("#fC").value),f100:num(b.querySelector("#fF").value)};store.put(S.me,"meals",v.mealId,vals).catch(()=>{})}
-        if(keep&&keep.getAttribute("aria-pressed")==="true") await store.addMeal(S.me,{name,grams:r.grams,k100:num(b.querySelector("#fK").value),p100:num(b.querySelector("#fP").value),c100:num(b.querySelector("#fC").value),f100:num(b.querySelector("#fF").value)});
+        if(v.mealId)store.put(S.me,"meals",v.mealId,meal).catch(()=>{});
+        if(keep&&keep.getAttribute("aria-pressed")==="true") await store.addMeal(S.me,meal);
         closeSheet();toast(`${name} · ${fmt(r.kcal)} kcal`)}catch(err){writeErr(err)}
     };
   },o);
