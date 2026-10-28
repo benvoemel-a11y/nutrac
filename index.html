@@ -248,7 +248,7 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .macro .num{font-size:13px;color:var(--muted);min-width:86px;text-align:right}
 
 .fab{position:absolute;right:max(20px,env(safe-area-inset-right,0px));bottom:calc(max(6px,calc(env(safe-area-inset-bottom,0px) - 16px)) + 58px);z-index:5;transition:transform .3s cubic-bezier(.22,.8,.24,1),opacity .2s}
-.fab button{width:62px;height:62px;border-radius:50%;background:var(--ink);color:var(--knob);display:grid;place-items:center;box-shadow:0 8px 24px rgba(0,0,0,.35);transition:transform .15s}
+.fab button{width:62px;height:62px;border-radius:50%;background:var(--wm,var(--ink));color:var(--wm-on,var(--knob));display:grid;place-items:center;box-shadow:0 8px 24px rgba(0,0,0,.35);transition:transform .15s}
 .fab button:active{transform:scale(.9)}
 .fab svg{width:26px;height:26px}
 .fab.off{opacity:0;transform:scale(.6);pointer-events:none}
@@ -484,9 +484,9 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="21";
+const APP_VERSION="22";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#d93f37"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
-function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]))}
+function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4")}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
 function applyTheme(t){t=t==="dunkel"?"dunkel":"grau";const r=document.documentElement;if(t==="dunkel")r.dataset.theme="dunkel";else delete r.dataset.theme;
   const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==="dunkel"?"#131313":"#8b8b8b";try{localStorage.setItem("nutrac-theme",t)}catch(e){}}
