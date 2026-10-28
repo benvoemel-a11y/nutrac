@@ -274,6 +274,14 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .caldet .dr b{display:block;font-family:var(--mono);font-size:20px;font-weight:600}
 .caldet .dr small{font-size:12px;color:var(--muted)}
 .caldet .it{font-size:13px;color:var(--muted);line-height:1.5;margin-top:10px}
+.mchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:10px -2px 0;padding:2px}
+.mchips::-webkit-scrollbar{display:none}
+.mchips button{flex:none;font-family:var(--mono);font-size:12px;border:1.5px solid var(--line);border-radius:999px;padding:5px 11px;color:var(--muted)}
+.mchips button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--knob)}
+.wtab{width:100%;border-collapse:collapse;font-size:15px}
+.wtab td{padding:9px 0;border-top:1.5px solid var(--line)}
+.wtab tr:first-child td{border-top:0}
+.wtab td:last-child{text-align:right;font-family:var(--mono)}
 .frbtn{position:relative}
 .frbtn.badge::after{content:"";position:absolute;top:4px;right:4px;width:11px;height:11px;border-radius:50%;background:var(--alert);border:2px solid var(--bg)}
 .botfade{position:absolute;left:0;right:0;bottom:0;height:calc(28px + env(safe-area-inset-bottom,0px));background:linear-gradient(to bottom,var(--bg0),var(--bg));pointer-events:none;z-index:2}
@@ -499,6 +507,7 @@ button{background:none;border:0;padding:0;cursor:pointer}
                 <button data-r="0" aria-pressed="false">Alle</button>
               </div>
             </div>
+            <div class="mchips" id="wMetric" hidden></div>
             <div class="wnow"><span class="val" id="wNow">–</span><span class="unit" id="wUnit">kg</span><span class="delta" id="wDelta"></span></div>
             <svg class="chart" id="chart" role="img" aria-label="Gewichtsverlauf"></svg>
             <div class="wact"><button class="lnk" id="wAll">Alle Einträge</button><button class="circle" id="wQuick" aria-label="Gewicht eintragen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v16M4 12h16"/></svg></button></div>
@@ -550,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="35";
+const APP_VERSION="36";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -616,7 +625,8 @@ const store=(function(){
     addFood(uid,e){return put(uid,"food",uuid(),e.date,e)},
     setEntry(uid,id,e){return put(uid,"food",id,e.date,e)},
     delFood(uid,id){return del(uid,"food",id)},
-    setWeight(uid,date,kg){return put(uid,"weight",date,date,{date,kg})},
+    setWeight(uid,date,kg,extra){return put(uid,"weight",date,date,{...(extra||{}),date,kg})},
+    async putWeights(uid,list){for(let i=0;i<list.length;i+=200){const ch=list.slice(i,i+200).map(w=>({user_id:uid,col:"weight",id:w.date,date:w.date,data:w,updated_at:new Date().toISOString()}));const {error}=await T().upsert(ch);if(error)throw error}refresh()},
     delWeight(uid,date){return del(uid,"weight",date)},
     addMeal(uid,m){return put(uid,"meals",uuid(),null,m)},
     delMeal(uid,id){return del(uid,"meals",id)},
@@ -839,7 +849,17 @@ function weightSummary(ws){
   const d=last.kg-base.kg;
   return{last,sorted:s,text:`${d>0?"+":d<0?"−":"±"} ${fw(Math.abs(d))} ${UNIT()} seit ${parseKey(base.date).toLocaleDateString("de-DE",{day:"numeric",month:"short"})}`};
 }
+const METRICS=[["kg","Gewicht",null,1],["fat","Fett","%",1],["muscle","Muskel","m",1],["water","Wasser","m",1],["lean","Magermasse","m",1],["bone","Knochen","m",1],["visceral","Viszeralfett","",0],["bmi","BMI","",1],["bmr","Grundumsatz","kcal",0]];
+const mUnit=m=>m[2]===null||m[2]==="m"?UNIT():m[2];
+const mVal=(m,v)=>m[2]===null||m[2]==="m"?toU(v):v;
+function bodyLine(w){return METRICS.slice(1).filter(m=>w[m[0]]!=null).map(m=>`${m[1]} <b style="font-family:var(--mono)">${fmt(mVal(m,w[m[0]]),m[3])}${mUnit(m)?" "+mUnit(m):""}</b>`).join(" · ")+(w.metAge?` · Stoffwechselalter <b style="font-family:var(--mono)">${w.metAge}</b>`:"")}
+S.metric="kg";
 function renderWeight(){
+  const avail=METRICS.filter(m=>m[0]==="kg"||S.weights.some(w=>w[m[0]]!=null));
+  const MC=$("#wMetric");MC.hidden=avail.length<2;
+  if(!avail.some(m=>m[0]===S.metric))S.metric="kg";
+  MC.innerHTML=avail.map(m=>`<button data-m="${m[0]}" aria-pressed="${m[0]===S.metric}">${m[1]}</button>`).join("");
+  if(S.metric!=="kg")return renderMetric(METRICS.find(m=>m[0]===S.metric));
   const sm=weightSummary(S.weights);
   $("#wNow").textContent=sm.last?fw(sm.last.kg):"–";$("#wUnit").textContent=UNIT();
   let txt=sm.text;
@@ -854,6 +874,19 @@ function renderWeight(){
   $("#wAll").hidden=!sm.sorted.length;
   drawChart(sm.sorted,$("#chart"),S.range,200);
 }
+function renderMetric(m){
+  const k=m[0],u=mUnit(m);
+  const ws=S.weights.filter(w=>w[k]!=null).sort((a,b)=>a.date<b.date?-1:1);
+  const last=ws[ws.length-1];
+  $("#wNow").textContent=last?fmt(mVal(m,last[k]),m[3]):"–";$("#wUnit").textContent=u;
+  let inR=ws;if(S.range){const c=new Date();c.setDate(c.getDate()-S.range);const ck=keyOf(c);inR=ws.filter(w=>w.date>=ck)}
+  let txt=ws.length?"":"noch keine Werte";
+  if(inR.length>1){const f=inR[0],d=mVal(m,last[k])-mVal(m,f[k]);txt=`${d>0?"+":d<0?"−":"±"} ${fmt(Math.abs(d),m[3])}${u?" "+u:""} seit ${parseKey(f.date).toLocaleDateString("de-DE",{day:"numeric",month:"short"})}`}
+  else if(last)txt=`am ${parseKey(last.date).toLocaleDateString("de-DE",{day:"numeric",month:"short"})}`;
+  $("#wDelta").textContent=txt;
+  $("#wAll").hidden=!S.weights.length;
+  drawChart(ws.map(w=>({date:w.date,kg:w[k]})),$("#chart"),S.range,200,{conv:v=>mVal(m,v),unit:u,dec:m[3]});
+}
 function weightList(){
   const ws=[...S.weights].sort((a,b)=>a.date<b.date?1:-1);
   const can=isMine()&&S.canWrite;
@@ -864,8 +897,9 @@ function weightList(){
     ${can?`<button class="btn" id="wlAdd">Gewicht eintragen</button>`:""}`:`<p class="hint">Noch keine Einträge.</p>`,
   b=>{const a=b.querySelector("#wlAdd");if(a)a.onclick=weightQuick},{reopen:weightList});
 }
-function drawChart(all,svg,range,H){
-  svg=svg||$("#chart");H=H||200;all=all.map(w=>({date:w.date,kg:toU(w.kg)}));
+function drawChart(all,svg,range,H,o){
+  o=o||{};svg=svg||$("#chart");H=H||200;const cv=o.conv||(v=>toU(v));all=all.map(w=>({date:w.date,kg:cv(w.kg)}));
+  svg._unit=o.unit==null?UNIT():o.unit;svg._dec=o.dec==null?1:o.dec;
   const W=Math.max(240,svg.clientWidth||320);
   svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
   let ws=all;
@@ -874,7 +908,7 @@ function drawChart(all,svg,range,H){
   const L=46,R=12,T=12,B=26;
   const t0=parseKey(ws[0].date).getTime(),t1=parseKey(ws[ws.length-1].date).getTime();
   let lo=Math.min(...ws.map(w=>w.kg)),hi=Math.max(...ws.map(w=>w.kg));
-  lo=Math.floor(lo-.5);hi=Math.ceil(hi+.5);if(hi-lo<2){hi+=1;lo-=1}
+  const pad=Math.max(.5,(hi-lo)*.1);lo=Math.floor(lo-pad);hi=Math.ceil(hi+pad);if(hi-lo<2){hi+=1;lo-=1}
   const x=t=>L+(t1===t0?0:(t-t0)/(t1-t0))*(W-L-R);
   const y=v=>T+(hi-v)/(hi-lo)*(H-T-B);
   const mid=(lo+hi)/2;
@@ -906,8 +940,8 @@ function bindScrub(svg){
     gq.setAttribute("visibility","visible");
     const ln=gq.querySelector(".sl"),c=gq.querySelector(".sc");
     ln.setAttribute("x1",best.x);ln.setAttribute("x2",best.x);c.setAttribute("cx",best.x);c.setAttribute("cy",best.y);
-    const lbl=`${fmt(best.kg,1)} ${UNIT()} · ${parseKey(best.date).toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"})}`;
-    if(isMain){$("#wNow").textContent=fmt(best.kg,1);$("#wDelta").textContent=parseKey(best.date).toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
+    const lbl=`${fmt(best.kg,svg._dec??1)} ${svg._unit??UNIT()} · ${parseKey(best.date).toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"})}`;
+    if(isMain){$("#wNow").textContent=fmt(best.kg,svg._dec??1);$("#wDelta").textContent=parseKey(best.date).toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
     else{let t=svg.querySelector(".stxt");if(!t){t=document.createElementNS("http://www.w3.org/2000/svg","text");t.setAttribute("class","stxt");svg.appendChild(t)}
       t.textContent=lbl;t.setAttribute("x",Math.min(Math.max(best.x,60),vb.width-60));t.setAttribute("y",12);t.setAttribute("text-anchor","middle")}
   };
@@ -1443,17 +1477,18 @@ document.addEventListener("keydown",e=>{
   if((e.key==="Enter"||e.key===" ")&&e.target.matches("#goalCard")){e.preventDefault();toggleGoal();return}
   if((e.key==="Enter"||e.key===" ")&&e.target.matches("[data-f]")){e.preventDefault();openFriend(e.target.dataset.f)}
 });
+$("#wMetric").onclick=e=>{const b=e.target.closest("[data-m]");if(!b)return;S.metric=b.dataset.m;renderWeight()};
 $("#range").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.range=+b.dataset.r;$("#range").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));renderWeight()};
 let rz=null;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{renderWeight();const fc=$("#fChart");if(fc)fc.dispatchEvent(new Event("redraw"))},120)});
 
 let gearTurn=0;
 $("#gear").onclick=()=>{gearTurn+=120;$("#gear svg").style.transform=`rotate(${gearTurn}deg)`;openSettings()};
 
-async function saveWeight(date,raw){
+async function saveWeight(date,raw,extra){
   const kg=kgRound(fromU(num(raw)));
   if(kg<20||kg>300){toast(UNIT()==="lb"?"Bitte ein Gewicht zwischen 45 und 660 lb eintragen":"Bitte ein Gewicht zwischen 20 und 300 kg eintragen");return false}
   try{
-    await store.setWeight(S.me,date,kg);
+    await store.setWeight(S.me,date,kg,extra);
     const ws=[...S.weights.filter(w=>w.date!==date),{date,kg}];
     if(latestWeight(ws)===kg&&S.users[S.me]){await store.saveProfile(S.me,{...S.users[S.me],weight:kg})}
     toast(`Gewicht ${fw(kg)} ${UNIT()} eingetragen`);return true;
@@ -1467,9 +1502,13 @@ function weightQuick(){
       <label class="fld"><span>Gewicht ${UNIT()}</span><input class="in big-in" type="text" inputmode="decimal" id="qKg" placeholder="${lw?fw(lw):"0,0"}" autocomplete="off"></label>
     </div>
     <p class="hint">Auch für frühere Tage – einfach das Datum ändern. Der Eintrag erscheint sofort im Graphen.</p>
-    <button class="btn" id="qSave">Eintragen</button>`,
+    <button class="btn" id="qSave">Eintragen</button>
+    <label class="btn ghost" style="position:relative;cursor:pointer">Von Withings übernehmen<input type="file" accept="application/pdf,.pdf,.csv,text/csv,.zip,application/zip" id="qWt" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%"></label>
+    <p class="hint" style="margin:0">Withings-Bericht (PDF) oder Daten-Export (CSV/ZIP) aus der Dateien-App wählen.</p>`,
   b=>{setTimeout(()=>b.querySelector("#qKg").focus(),350);
-    b.querySelector("#qSave").onclick=async()=>{if(await saveWeight(b.querySelector("#qDate").value||S.day,b.querySelector("#qKg").value))done()}});
+    b.querySelector("#qSave").onclick=async()=>{if(await saveWeight(b.querySelector("#qDate").value||S.day,b.querySelector("#qKg").value))done()};
+    b.querySelector("#qWt").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+      toast("Datei wird gelesen …");try{withingsPreview(await readWithings(f))}catch(err){console.warn(err);toast(err&&err.message==="nodata"?"In der Datei wurden keine Withings-Werte gefunden":"Datei konnte nicht gelesen werden")}}});
 }
 
 /* ---------- Blatt ---------- */
@@ -1921,6 +1960,7 @@ function openWeight(date){
      <label class="fld"><span>Datum</span><input class="in" type="date" id="ewDate" value="${date}" max="${keyOf(new Date())}"></label>
      <label class="fld"><span>Gewicht ${UNIT()}</span><input class="in big-in" type="text" inputmode="decimal" id="ewKg" value="${fw(w.kg)}" autocomplete="off"></label>
    </div>
+   ${bodyLine(w)?`<div class="card" style="padding:14px 16px"><div class="card-title" style="margin-bottom:6px"><h2 style="font-size:15px">Körper</h2><span>${w.src==="withings"?"Withings":""}</span></div><div class="hint" style="margin:0;line-height:1.7;text-transform:none;letter-spacing:0">${bodyLine(w)}</div></div>`:""}
    <p class="hint" id="ewHint" style="margin:0"></p>
    <button class="btn" id="ewSave">Speichern</button><button class="btn danger" id="ewDel">Löschen</button>`,
   b=>{
@@ -1930,7 +1970,8 @@ function openWeight(date){
       const nd=dIn.value||date;
       if(nd>keyOf(new Date())){toast("Datum liegt in der Zukunft");return}
       if(nd!==date&&S.weights.some(x=>x.date===nd)&&!sure){sure=true;hint.textContent="Am neuen Datum gibt es schon einen Eintrag. Nochmal auf Speichern tippen, um ihn zu ersetzen.";return}
-      if(!(await saveWeight(nd,b.querySelector("#ewKg").value)))return;
+      const {date:_d,kg:_k,...ex}=w;
+      if(!(await saveWeight(nd,b.querySelector("#ewKg").value,ex)))return;
       if(nd!==date){try{await store.delWeight(S.me,date)}catch(err){writeErr(err);return}}
       done();
     };
@@ -2238,6 +2279,101 @@ const keepStore=(function(){
     removeItem(k){try{localStorage.removeItem(k)}catch(e){}try{clearC(k)}catch(e){}}
   };
 })();
+
+/* ---------- Withings: PDF-Bericht oder Daten-Export (CSV/ZIP) ---------- */
+const loadScript=src=>new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)});
+const PDFJS="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js",PDFJS_W="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js",JSZIP="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+async function readWithings(file){
+  const name=(file.name||"").toLowerCase();
+  if(name.endsWith(".pdf")||file.type==="application/pdf")return parseWithingsPdf(await pdfText(file));
+  if(name.endsWith(".zip")||/zip/.test(file.type)){
+    if(!window.JSZip)await loadScript(JSZIP);
+    const z=await JSZip.loadAsync(await file.arrayBuffer());
+    const f=Object.values(z.files).find(x=>/(^|\/)(weight|gewicht)[^/]*\.csv$/i.test(x.name));
+    if(!f)throw new Error("nodata");return parseWithingsCsv(await f.async("string"));
+  }
+  return parseWithingsCsv(await file.text());
+}
+async function pdfText(file){
+  if(!window.pdfjsLib)await loadScript(PDFJS);
+  pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_W;
+  const doc=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;let t="";
+  for(let i=1;i<=doc.numPages;i++){const c=await (await doc.getPage(i)).getTextContent();t+=c.items.map(x=>x.str).join(" ")+"\n"}
+  return t.replace(/\s+/g," ");
+}
+function parseWithingsPdf(t){
+  const de=/Gewicht|Körper/.test(t);
+  const N=s=>{if(s==null)return null;s=String(s);s=de?s.replace(/\.(?=\d{3}(\D|$))/g,"").replace(",","."):s.replace(/,(?=\d{3}(\D|$))/g,"");const v=parseFloat(s);return isFinite(v)?v:null};
+  const g=(re)=>{const m=t.match(re);return m?N(m[1]):null};
+  const L=de?{w:"Gewicht",fat:"Fettmasse",bone:"Knochenmasse",mus:"Muskelmasse",vis:"Viszeralfett",lean:"Magermasse",wat:"Wassermasse"}:{w:"Weight",fat:"Fat [Mm]ass",bone:"Bone [Mm]ass",mus:"Muscle [Mm]ass",vis:"Visceral [Ff]at",lean:"(?:Lean|Fat[- ]free) [Mm]ass",wat:"(?:Water|Hydration)(?: [Mm]ass)?"};
+  const r={src:"withings"};
+  r.kg=g(new RegExp(L.w+"\\s+([\\d.,]+)\\s*kg"));
+  r.bmi=g(/BMI\s+([\d.,]+)/);r.bmr=g(/BMR\s+([\d.,]+)\s*kcal/);
+  const ma=t.match(de?/(\d+)\s*Jahre\s+Stoffwechselalter/:/(\d+)\s*(?:years?|y)\s+Metabolic age/i);if(ma)r.metAge=+ma[1];
+  r.fat=g(new RegExp(L.fat+"\\s+([\\d.,]+)\\s*%"));
+  if(r.fat==null){const fk=g(new RegExp(L.fat+"\\s+([\\d.,]+)\\s*kg"));if(fk!=null&&r.kg)r.fat=Math.round(fk/r.kg*1000)/10}
+  r.bone=g(new RegExp(L.bone+"\\s+([\\d.,]+)\\s*kg"));r.muscle=g(new RegExp(L.mus+"\\s+([\\d.,]+)\\s*kg"));
+  r.visceral=g(new RegExp(L.vis+"\\s+([\\d.,]+)"));r.lean=g(new RegExp(L.lean+"\\s+([\\d.,]+)\\s*kg"));r.water=g(new RegExp(L.wat+"\\s+([\\d.,]+)\\s*kg"));
+  Object.keys(r).forEach(k=>r[k]==null&&delete r[k]);
+  if(!r.kg)throw new Error("nodata");
+  // Datum = Ende des Berichtszeitraums
+  const MON={jan:1,feb:2,mär:3,mar:3,apr:4,mai:5,may:5,jun:6,jul:7,aug:8,sep:9,okt:10,oct:10,nov:11,dez:12,dec:12};
+  let date=keyOf(new Date());
+  const dm=t.match(/-\s*(\d{1,2})\.?\s+([A-Za-zÄÖÜäöü]{3,})\.?\s+(\d{4})/)||t.match(/-\s*([A-Za-z]{3,})\.?\s+(\d{1,2}),?\s+(\d{4})/);
+  if(dm){let d,mo,y;if(/^\d/.test(dm[1])){d=+dm[1];mo=MON[dm[2].toLowerCase().slice(0,3)];y=+dm[3]}else{mo=MON[dm[1].toLowerCase().slice(0,3)];d=+dm[2];y=+dm[3]}
+    if(mo){const k=`${y}-${String(mo).padStart(2,"0")}-${String(d).padStart(2,"0")}`;if(k<=date)date=k}}
+  r.date=date;
+  return {kind:"pdf",list:[r]};
+}
+function parseWithingsCsv(txt){
+  txt=txt.replace(/^﻿/,"");const lines=txt.split(/\r?\n/).filter(x=>x.trim());if(lines.length<2)throw new Error("nodata");
+  const sep=(lines[0].match(/;/g)||[]).length>(lines[0].match(/,/g)||[]).length?";":",";
+  const split=l=>{const out=[];let cur="",q=false;for(const ch of l){if(ch==='"'){q=!q;continue}if(ch===sep&&!q){out.push(cur);cur="";continue}cur+=ch}out.push(cur);return out.map(x=>x.trim())};
+  const H=split(lines[0]).map(h=>h.toLowerCase());
+  const col=(re,not)=>H.findIndex(h=>re.test(h)&&!(not&&not.test(h)));
+  const ci={date:col(/^(date|datum)/),kg:col(/(weight|gewicht)/,/(fat|fett|lean|mager|bone|knochen|muscle|muskel)/),fatKg:col(/(fat mass|fettmasse)/,/(free|frei|ratio|%|anteil)/),fatP:col(/(fat ratio|fettanteil|fat %|fett %)/),bone:col(/(bone|knochen)/),muscle:col(/(muscle|muskel)/),water:col(/(hydration|wasser)/),lean:col(/(lean|mager|fat free|fettfrei)/)};
+  if(ci.date<0||ci.kg<0)throw new Error("nodata");
+  const NN=s=>{if(s==null||s==="")return null;s=String(s).replace(",",".");const v=parseFloat(s);return isFinite(v)?v:null};
+  const byDay={};
+  for(const l of lines.slice(1)){const c=split(l);const raw=c[ci.date]||"";let k=null;
+    let m=raw.match(/(\d{4})-(\d{2})-(\d{2})/);if(m)k=`${m[1]}-${m[2]}-${m[3]}`;else{m=raw.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);if(m)k=`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`}
+    const kg=NN(c[ci.kg]);if(!k||!kg||kg<20||kg>300)continue;
+    const r={date:k,kg:Math.round(kg*10)/10,src:"withings",_t:raw};
+    const fk=ci.fatKg>=0?NN(c[ci.fatKg]):null,fp=ci.fatP>=0?NN(c[ci.fatP]):null;
+    if(fp!=null)r.fat=Math.round(fp*10)/10;else if(fk!=null)r.fat=Math.round(fk/kg*1000)/10;
+    [["bone","bone"],["muscle","muscle"],["water","water"],["lean","lean"]].forEach(([a,b])=>{if(ci[a]>=0){const v=NN(c[ci[a]]);if(v!=null)r[b]=Math.round(v*10)/10}});
+    if(r.lean==null&&fk!=null)r.lean=Math.round((kg-fk)*10)/10;
+    if(!byDay[k]||byDay[k]._t<raw)byDay[k]=r}
+  const list=Object.values(byDay).map(({_t,...r})=>r).filter(r=>r.date<=keyOf(new Date())).sort((a,b)=>a.date<b.date?-1:1);
+  if(!list.length)throw new Error("nodata");
+  return {kind:"csv",list};
+}
+function withingsPreview(res){
+  const dl=k=>parseKey(k).toLocaleDateString("de-DE",{day:"numeric",month:"short",year:"numeric"});
+  if(res.kind==="pdf"){const r=res.list[0];
+    const rows=[["Gewicht",fw(r.kg)+" "+UNIT()],...METRICS.slice(1).filter(m=>r[m[0]]!=null).map(m=>[m[1],fmt(mVal(m,r[m[0]]),m[3])+(mUnit(m)?" "+mUnit(m):"")]),...(r.metAge?[["Stoffwechselalter",r.metAge+" Jahre"]]:[])];
+    openSheet("Withings übertragen",`<div class="card form"><label class="fld"><span>Datum</span><input class="in" type="date" id="wtDate" value="${r.date}" max="${keyOf(new Date())}"></label>
+      <table class="wtab">${rows.map(([a,v])=>`<tr><td>${esc(a)}</td><td>${esc(v)}</td></tr>`).join("")}</table></div>
+      <p class="hint" style="margin:0">Der Bericht enthält nur den neuesten Stand – er wird als ein Eintrag am gewählten Datum gespeichert. Für jede einzelne Messung: in der Withings-App „Meine Daten herunterladen“ und die ZIP/CSV hier wählen.</p>
+      <button class="btn" id="wtGo">Übertragen</button>`,b=>{
+      b.querySelector("#wtGo").onclick=async e=>{e.currentTarget.disabled=true;const d=b.querySelector("#wtDate").value||r.date;await doImport([{...(S.weights.find(w=>w.date===d)||{}),...r,date:d}])}});
+  }else{const L=res.list,f=L[0],l=L[L.length-1],n=L.filter(r=>S.weights.some(w=>w.date===r.date)).length;
+    const extra=METRICS.slice(1).filter(m=>L.some(r=>r[m[0]]!=null)).map(m=>m[1]);
+    openSheet("Withings übertragen",`<div class="card form"><table class="wtab"><tr><td>Messtage</td><td>${L.length}</td></tr><tr><td>Zeitraum</td><td>${dl(f.date)} – ${dl(l.date)}</td></tr><tr><td>Neuester Wert</td><td>${fw(l.kg)} ${UNIT()}</td></tr>${n?`<tr><td>Schon vorhanden</td><td>${n} Tage</td></tr>`:""}</table>
+      ${extra.length?`<p class="hint" style="margin:0;text-transform:none;letter-spacing:0">Dazu: ${esc(extra.join(", "))}</p>`:""}</div>
+      ${n?`<p class="hint" style="margin:0">Tage, die es schon gibt, bekommen die Withings-Werte.</p>`:""}
+      <button class="btn" id="wtGo">${L.length} Messungen übertragen</button>`,b=>{
+      b.querySelector("#wtGo").onclick=async e=>{e.currentTarget.disabled=true;await doImport(L.map(r=>({...(S.weights.find(w=>w.date===r.date)||{}),...r})))}});
+  }
+}
+async function doImport(list){
+  try{
+    await store.putWeights(S.me,list);
+    const all=[...S.weights.filter(w=>!list.some(x=>x.date===w.date)),...list];const lw=latestWeight(all);
+    if(S.users[S.me]&&lw&&Math.abs((S.users[S.me].weight||0)-lw)>.05)await store.saveProfile(S.me,{...S.users[S.me],weight:lw});
+    toast(list.length===1?"Withings-Werte übertragen":`${list.length} Messungen übertragen`);closeSheet();
+  }catch(err){writeErr(err)}
+}
 
 /* ---------- Kalender ---------- */
 function weightAt(ws,day){let best=null;for(const w of ws){if(w.date<=day&&(!best||w.date>best.date))best=w}if(!best&&ws.length)best=[...ws].sort((a,b)=>a.date<b.date?-1:1)[0];return best?best.kg:0}
