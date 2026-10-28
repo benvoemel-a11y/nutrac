@@ -251,6 +251,29 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .iv-btn{width:100%;background:#ececec;color:#131313;border-radius:999px;padding:17px;font-family:var(--mono);font-size:16px;font-weight:600}
 .iv-alt{display:block;margin:16px auto 0;color:#9a9a9a;font-family:var(--sans);font-size:15px}
 .iv-btn:active,.iv-alt:active{opacity:.7}
+.calseg{margin-bottom:4px}
+.hmw{display:flex;gap:6px;justify-content:center}
+.hmw .wdl{display:flex;flex-direction:column;flex:none}
+.hmw .wdl span{font-family:var(--mono);font-size:10px;color:var(--faint);width:18px}
+.hm-ml{display:grid;height:16px;margin-bottom:4px}
+.hm-ml span{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap;overflow:visible}
+.hm{display:flex}
+.hm>div{display:flex;flex-direction:column}
+.hm button{display:block;padding:0;border-radius:28%;background:var(--track)}
+.hm button.ok{background:var(--ink)}
+.hm button.bad{background:var(--alert)}
+.hm button.fut{background:transparent;pointer-events:none}
+.hm button.sel{outline:2px solid var(--fg);outline-offset:1.5px}
+.hm-lg{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.hm-lg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--track)}
+.hm-lg i.ok{background:var(--ink)}.hm-lg i.bad{background:var(--alert)}
+.calsum{display:flex;justify-content:space-between}
+.calsum small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+.calsum b{font-family:var(--mono);font-size:18px;font-weight:600}
+.caldet .dr{display:flex;justify-content:space-between;margin-top:8px}
+.caldet .dr b{display:block;font-family:var(--mono);font-size:20px;font-weight:600}
+.caldet .dr small{font-size:12px;color:var(--muted)}
+.caldet .it{font-size:13px;color:var(--muted);line-height:1.5;margin-top:10px}
 .frbtn{position:relative}
 .frbtn.badge::after{content:"";position:absolute;top:4px;right:4px;width:11px;height:11px;border-radius:50%;background:var(--alert);border:2px solid var(--bg)}
 .botfade{position:absolute;left:0;right:0;bottom:0;height:calc(28px + env(safe-area-inset-bottom,0px));background:linear-gradient(to bottom,var(--bg0),var(--bg));pointer-events:none;z-index:2}
@@ -446,6 +469,7 @@ button{background:none;border:0;padding:0;cursor:pointer}
             <span class="wordmark" id="wordmark">Nutrac</span>
             <span style="flex:1"></span>
             <button class="circle frbtn" id="friendsBtn" aria-label="Freunde"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="16.8" cy="9.5" r="2.5"/><path d="M15.8 14.3c2.6-.3 4.4 1.3 4.9 4.2"/></svg></button>
+            <button class="circle" id="calBtn" aria-label="Kalender"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="4" y="5.5" width="16" height="14.5" rx="3"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></button>
             <button class="circle gear" id="gear" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.3.9a7.5 7.5 0 0 0-2.6-1.5L14.1 2.5h-4l-.4 2.5a7.5 7.5 0 0 0-2.6 1.5l-2.3-.9-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.3-.9a7.5 7.5 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 2.6-1.5l2.3.9 2-3.4-2-1.5Z"/></svg></button>
           </div>
           <div class="card bkp" id="bkpCard" hidden></div>
@@ -526,7 +550,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="34";
+const APP_VERSION="35";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -1403,6 +1427,7 @@ document.addEventListener("click",e=>{
   if(e.target.closest("#wAll")){weightList();return}
   if(e.target.closest("#addFriend")){addFriendSheet();return}
   if(e.target.closest("#friendsBtn")){openFriends();return}
+  if(e.target.closest("#calBtn")){openCalendar();return}
   const acc=e.target.closest("[data-acc]"),dec=e.target.closest("[data-dec]"),can=e.target.closest("[data-can]");
   if(acc||dec){const b=acc||dec;b.disabled=true;store.answerRequest((acc||dec).dataset[acc?"acc":"dec"],!!acc).then(r=>toast(acc?"Ihr seid jetzt befreundet":"Anfrage abgelehnt")).catch(err=>{b.disabled=false;writeErr(err)});return}
   if(can){can.disabled=true;store.cancelRequest(can.dataset.can).then(()=>toast("Anfrage zurückgezogen")).catch(err=>{can.disabled=false;writeErr(err)});return}
@@ -2213,6 +2238,67 @@ const keepStore=(function(){
     removeItem(k){try{localStorage.removeItem(k)}catch(e){}try{clearC(k)}catch(e){}}
   };
 })();
+
+/* ---------- Kalender ---------- */
+function weightAt(ws,day){let best=null;for(const w of ws){if(w.date<=day&&(!best||w.date>best.date))best=w}if(!best&&ws.length)best=[...ws].sort((a,b)=>a.date<b.date?-1:1)[0];return best?best.kg:0}
+let CAL={range:91,sel:null,food:[],from:null};
+async function openCalendar(){
+  CAL.from=null;CAL.food=[];
+  const p=S.users[S.me]||{};const goal=p.goal||"lose";
+  openSheet("Kalender",`<div class="seg calseg" id="calR"><button data-v="28">4 Wo</button><button data-v="91">13 Wo</button><button data-v="365">Jahr</button></div>
+    <div id="calHm" class="hint">lädt …</div>
+    <div class="hm-lg"><span><i class="ok"></i>im Ziel</span>${goal==="keep"?"":`<span><i class="bad"></i>${goal==="gain"?"unter dem Ziel":"über dem Ziel"}</span>`}<span><i></i>nichts eingetragen</span></div>
+    <div class="card calsum" id="calSum"></div>
+    <div class="card caldet" id="calDet"></div>`,b=>{
+    const load=async()=>{
+      const today=new Date();const from=new Date();from.setDate(from.getDate()-CAL.range-7);const f=keyOf(from);
+      if(!CAL.from||f<CAL.from){try{CAL.food=await store.foodRange(S.me,f,keyOf(today));CAL.from=f}catch(e){onErr(e);return}}
+      draw();
+    };
+    const draw=()=>{
+      const el=b.querySelector("#calHm");if(!el)return;
+      b.querySelectorAll("#calR button").forEach(x=>x.setAttribute("aria-pressed",String(+x.dataset.v===CAL.range)));
+      const today=new Date();today.setHours(12);const tk=keyOf(today);
+      const byDay={};CAL.food.forEach(e=>{(byDay[e.date]=byDay[e.date]||[]).push(e)});
+      const weeks=Math.ceil(CAL.range/7);
+      const start=new Date(today);start.setDate(start.getDate()-((today.getDay()+6)%7)-7*(weeks-1));
+      const info={};const cols=[];let sumE=0,sumD=0,nE=0,nOk=0;
+      for(let w=0;w<weeks;w++){const col=[];for(let d=0;d<7;d++){const dt=new Date(start);dt.setDate(start.getDate()+w*7+d);const k=keyOf(dt);
+        if(k>tk){col.push({k,cls:"fut"});continue}
+        const DS=dayStats(byDay[k]||[]);
+        if(!DS.foods.length){col.push({k,cls:""});continue}
+        const pl=plan(p,weightAt(S.weights,k));
+        let cls="ok",gl=null,diff=null;
+        if(pl){const SP=stepsOf(pl,DS);gl=pl.target+DS.burned+SP.k;diff=DS.eaten-gl;
+          if(goal==="lose"&&diff>0)cls="bad";if(goal==="gain"&&diff<0)cls="bad";sumD+=diff}
+        info[k]={DS,gl,diff,cls};sumE+=DS.eaten;nE++;if(cls==="ok")nOk++;
+        col.push({k,cls})}cols.push(col)}
+      const W=Math.min(el.parentElement.clientWidth||340,520)-24,gap=weeks>20?2:weeks>8?4:6;
+      const sz=Math.max(4,Math.min(38,Math.floor((W-gap*(weeks-1))/weeks)));
+      const MON=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];let last=-1;
+      const ml=cols.map(c=>{const m=parseKey(c[0].k).getMonth();const t=m!==last?MON[m]:"";last=m;return `<span>${weeks>20&&t?t.slice(0,1):t}</span>`}).join("");
+      if(!CAL.sel||CAL.sel>tk)CAL.sel=tk;
+      el.className="";
+      el.innerHTML=`<div class="hmw"><div class="wdl" style="gap:${gap}px;margin-top:20px">${["Mo","","Mi","","Fr","","So"].map(x=>`<span style="height:${sz}px;line-height:${sz}px">${sz>=10?x:""}</span>`).join("")}</div>
+        <div><div class="hm-ml" style="grid-template-columns:repeat(${weeks},${sz}px);gap:${gap}px">${ml}</div>
+        <div class="hm" style="gap:${gap}px">${cols.map(c=>`<div style="gap:${gap}px">${c.map(x=>`<button class="${x.cls}${x.k===CAL.sel?" sel":""}" data-k="${x.k}" style="width:${sz}px;height:${sz}px" aria-label="${x.k}"></button>`).join("")}</div>`).join("")}</div></div></div>`;
+      const ds=v=>(v<0?"−":"+")+(Math.abs(v)>=1000?fmt(Math.abs(v)/1000,1)+"k":fmt(Math.abs(v)));
+      b.querySelector("#calSum").innerHTML=`<div><small>Ø Tag</small><b>${nE?fmt(sumE/nE):"–"}</b></div><div><small>Im Ziel</small><b>${nE?nOk+"/"+nE:"–"}</b></div><div><small>Bilanz</small><b>${nE?ds(sumD):"–"}</b></div>`;
+      const k=CAL.sel,I=info[k],d=parseKey(k);
+      const wd=d.toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"}).toUpperCase();
+      const wt=S.weights.find(w=>w.date===k);const u=p.unit||"kg";
+      const names=I?[...I.DS.foods.map(e=>e.name),...I.DS.sports.map(e=>e.name+(e.min?" "+e.min+" min":""))].filter(Boolean):[];
+      b.querySelector("#calDet").innerHTML=`<div class="card-title" style="margin:0"><span style="font-family:var(--mono);letter-spacing:.1em;font-size:12px">${esc(wd)}</span><span>${goal==="lose"?"Abnehmen":goal==="gain"?"Zunehmen":"Halten"}</span></div>
+        ${I?`<div class="dr"><div><b>${fmt(I.DS.eaten)}</b><small>gegessen</small></div>${I.diff!=null?`<div><b class="${I.cls==="bad"?"over":""}" style="${I.cls==="bad"?"color:var(--alert)":""}">${fmt(Math.abs(I.diff))}</b><small>${I.diff>0?"über":"unter"} Ziel</small></div>`:""}${wt?`<div><b>${fmt(toU(wt.kg,u),1)}</b><small>${u}</small></div>`:""}</div>
+        <div class="it">${esc(names.slice(0,10).join(" · "))}${names.length>10?" …":""}</div>`:`<p class="hint" style="margin:8px 0 0">An diesem Tag ist nichts eingetragen.</p>`}
+        <button class="lnk" id="calOpen" style="align-self:flex-end">Tag öffnen →</button>`;
+      b.querySelector("#calOpen").onclick=()=>{S.day=k;S.view=S.me;closeSheet();resubscribe()};
+    };
+    b.querySelector("#calR").onclick=e=>{const x=e.target.closest("button");if(!x)return;CAL.range=+x.dataset.v;load()};
+    b.querySelector("#calHm").addEventListener("click",e=>{const x=e.target.closest("button[data-k]");if(!x)return;CAL.sel=x.dataset.k;draw()});
+    CAL.sel=null;load();
+  });
+}
 
 /* ---------- Einladung per Link ---------- */
 const INV_KEY="nutrac-invite";
