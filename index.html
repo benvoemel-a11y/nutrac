@@ -259,14 +259,14 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .hm-ml span{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap;overflow:visible}
 .hm{display:flex}
 .hm>div{display:flex;flex-direction:column}
-.hm button{display:block;padding:0;border-radius:28%;background:var(--track)}
-.hm button.ok{background:var(--ink)}
+.hm button{display:block;padding:0;border-radius:28%;background:#f2f2f2}
+.hm button.ok{background:var(--faint)}
 .hm button.bad{background:var(--alert)}
 .hm button.fut{background:transparent;pointer-events:none}
 .hm button.sel{outline:2px solid var(--fg);outline-offset:1.5px}
 .hm-lg{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
-.hm-lg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--track)}
-.hm-lg i.ok{background:var(--ink)}.hm-lg i.bad{background:var(--alert)}
+.hm-lg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:#f2f2f2}
+.hm-lg i.ok{background:var(--faint)}.hm-lg i.bad{background:var(--alert)}
 .calsum{display:flex;justify-content:space-between}
 .calsum small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
 .calsum b{font-family:var(--mono);font-size:18px;font-weight:600}
@@ -368,7 +368,7 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .seg{display:flex;border:1.5px solid var(--line);border-radius:12px;padding:3px;gap:3px;flex-wrap:wrap}
 .seg button{flex:1;padding:9px 6px;border-radius:9px;font-size:14px;color:var(--muted);min-width:0}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--knob)}
-.btn{background:var(--ink);color:var(--knob);border-radius:14px;padding:14px 18px;font-family:var(--mono);font-size:15px;font-weight:500;text-align:center;display:block;width:100%}
+.btn{background:var(--ink);color:var(--knob);border-radius:14px;padding:14px 18px;font-family:var(--mono);font-size:15px;font-weight:500;text-align:center;display:block;width:100%;box-sizing:border-box}
 .btn.ghost{background:transparent;color:var(--fg);border:1.5px solid var(--muted)}
 .btn.danger{background:transparent;color:var(--alert);border:1.5px solid var(--alert)}
 .btn:disabled{opacity:.45}
@@ -559,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="37";
+const APP_VERSION="39";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -1844,17 +1844,16 @@ function sportForm(){
     </div>
     <p class="hint">Die kcal z. B. von der Uhr übernehmen. Sie werden zu deinem Tagesziel addiert.</p>
     <button class="btn" id="sAdd">Hinzufügen</button>
-    <div class="sec"><h4>Garmin</h4><span>CSV-Export</span></div>
-    <label class="btn ghost" style="position:relative;cursor:pointer">Von Garmin übernehmen<input type="file" accept=".csv,text/csv" id="sGarmin" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%"></label>
-    <p class="hint" style="margin:0">Garmin Connect im Browser → Aktivitäten → Alle Aktivitäten → „CSV exportieren“. Die Datei hier wählen, dann aussuchen, was übernommen wird.</p>`,
+    <div class="sec"><h4>Garmin</h4><span>Screenshot</span></div>
+    <label class="btn ghost" style="position:relative;cursor:pointer">Von Garmin übernehmen<input type="file" accept="image/*" id="sGarmin" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%"></label>
+    <p class="hint" style="margin:0">Screenshot der Aktivität aus Garmin Connect wählen – Zeit und Kalorien werden ausgelesen.</p>`,
   b=>{
     b.querySelector("#rtNew").onclick=()=>routineForm(null);
     b.querySelectorAll("[data-rted]").forEach(x=>x.onclick=()=>routineForm(S.routines.find(r=>r.id===x.dataset.rted)));
     b.querySelectorAll("[data-rtadd]").forEach(x=>x.onclick=async()=>{
       const r=S.routines.find(q=>q.id===x.dataset.rtadd);if(!r)return;
       try{await store.addFood(S.me,{kind:"sport",date:S.day,t:entryTime(),name:r.name,kcal:num(r.kcal),min:num(r.min)||0,routineId:r.id});closeSheet();toast(`${r.name} · + ${fmt(r.kcal)} kcal`)}catch(err){writeErr(err)}});
-    b.querySelector("#sGarmin").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
-      try{garminPreview(parseGarminCsv(await f.text()))}catch(err){console.warn(err);toast(err&&err.message==="nodata"?"Keine Garmin-Aktivitäten in der Datei gefunden":"Datei konnte nicht gelesen werden")}};
+    b.querySelector("#sGarmin").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(f)garminFromImage(f)};
     b.querySelector("#sAdd").onclick=async()=>{
       const k=Math.round(num(b.querySelector("#sK").value));if(!k){toast("Bitte die verbrannten kcal eintragen");return}
       const name=b.querySelector("#sName").value.trim()||"Sport";
@@ -2380,54 +2379,95 @@ async function doImport(list){
   }catch(err){writeErr(err)}
 }
 
-/* ---------- Garmin: Aktivitäten aus CSV ---------- */
-function parseGarminCsv(txt){
-  txt=txt.replace(/^﻿/,"");const lines=txt.split(/\r?\n/).filter(x=>x.trim());if(lines.length<2)throw new Error("nodata");
-  const sep=(lines[0].match(/;/g)||[]).length>(lines[0].match(/,/g)||[]).length?";":",";
-  const split=l=>{const out=[];let cur="",q=false;for(const ch of l){if(ch==='"'){q=!q;continue}if(ch===sep&&!q){out.push(cur);cur="";continue}cur+=ch}out.push(cur);return out.map(x=>x.trim())};
-  const H=split(lines[0]).map(h=>h.toLowerCase());
-  const ix=(...res)=>{for(const re of res){const i=H.findIndex(h=>re.test(h));if(i>=0)return i}return -1};
-  const ci={type:ix(/^(activity type|aktivitätstyp|aktivitätsart)$/,/(activity type|aktivität)/),date:ix(/^(date|datum)$/,/(date|datum)/),title:ix(/^(title|titel)$/),kcal:ix(/^(calories|kalorien)$/,/(calories|kalorien)/),time:ix(/^(time|zeit)$/,/^(total time|gesamtzeit|elapsed time|verstrichene zeit)$/,/(time|zeit)/),dist:ix(/^(distance|distanz|strecke)$/)};
-  if(ci.date<0||ci.kcal<0)throw new Error("nodata");
-  const N=s=>{if(s==null)return 0;s=String(s).trim();if(!s||s==="--")return 0;s=s.replace(/[.,](?=\d{3}(\D|$))/g,"").replace(",",".");const v=parseFloat(s);return isFinite(v)?v:0};
-  const dur=s=>{const p=String(s||"").split(":").map(x=>parseFloat(x.replace(",","."))||0);if(p.length===3)return p[0]*60+p[1]+p[2]/60;if(p.length===2)return p[0]+p[1]/60;return N(s)};
-  const out=[];
-  for(const l of lines.slice(1)){const c=split(l);const raw=c[ci.date]||"";
-    let m=raw.match(/(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?/),k=null,hh=12,mi=0;
-    if(m){k=`${m[1]}-${m[2]}-${m[3]}`;if(m[4]){hh=+m[4];mi=+m[5]}}
-    else{m=raw.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\D+(\d{1,2}):(\d{2}))?/);if(m){k=`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;if(m[4]){hh=+m[4];mi=+m[5]}}}
-    if(!k||k>keyOf(new Date()))continue;
-    const kcal=N(c[ci.kcal]);if(!kcal)continue;
-    const min=ci.time>=0?Math.round(dur(c[ci.time])):0;
-    const type=ci.type>=0?c[ci.type]:"",title=ci.title>=0?c[ci.title]:"";
-    const t=parseKey(k);t.setHours(hh,mi,0,0);
-    out.push({id:`garmin-${k}-${String(hh).padStart(2,"0")}${String(mi).padStart(2,"0")}`,date:k,t:t.getTime(),name:(title||type||"Sport").slice(0,40),type,min,kcalTotal:Math.round(kcal)});
-  }
-  if(!out.length)throw new Error("nodata");
-  return out.sort((a,b)=>b.t-a.t);
+/* ---------- Garmin: Screenshot per Texterkennung (auf dem iPhone, Tesseract) ---------- */
+const TESS="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+async function prepImage(file){
+  const url=URL.createObjectURL(file);
+  const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
+  const sc=Math.min(2,1600/Math.max(img.width,1));const W=Math.round(img.width*sc),H=Math.round(img.height*sc);
+  const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");x.drawImage(img,0,0,W,H);
+  const d=x.getImageData(0,0,W,H),a=d.data;let sum=0;
+  for(let i=0;i<a.length;i+=4){const g=.3*a[i]+.59*a[i+1]+.11*a[i+2];a[i]=a[i+1]=a[i+2]=g;sum+=g}
+  if(sum/(a.length/4)<110)for(let i=0;i<a.length;i+=4){a[i]=a[i+1]=a[i+2]=255-a[i]}
+  x.putImageData(d,0,0);return {canvas:c,url};
 }
-function activeKcal(a){const p=S.users[S.me];const pl=p&&plan(p,weightAt(S.weights,a.date));const rest=pl&&a.min?pl.bmr*a.min/1440:0;return Math.max(0,Math.round(a.kcalTotal-rest))}
-function garminPreview(list){
-  const have=new Set();
-  const sel=new Set(list.map(a=>a.id));
-  const dl=k=>parseKey(k).toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"});
-  openSheet("Garmin übertragen",`<div class="card" style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center"><span class="hint" style="margin:0;text-transform:none;letter-spacing:0" id="gCount"></span><button class="lnk" id="gAll">Keine</button></div>
-    <div class="card flush"><div class="list" id="gList">${list.map(a=>`<button class="row" data-g="${esc(a.id)}" style="gap:12px"><span class="check" aria-pressed="true" style="pointer-events:none"><i></i></span><span class="n">${esc(a.name)}<small>${esc(dl(a.date))}${a.min?" · "+fmt(a.min)+" min":""}<span class="gh" data-gh="${esc(a.id)}"></span></small></span><span class="k">+ ${fmt(activeKcal(a))}</span></button>`).join("")}</div></div>
-    <p class="hint" style="margin:0">Gezählt werden nur die aktiven Kalorien: Garmin-Kalorien minus dein Grundumsatz für die Dauer. Schon übertragene Aktivitäten werden nicht doppelt angelegt.</p>
-    <button class="btn" id="gGo"></button>`,b=>{
-    const upd=()=>{b.querySelectorAll("[data-g]").forEach(x=>x.querySelector(".check").setAttribute("aria-pressed",String(sel.has(x.dataset.g))));
-      b.querySelector("#gCount").textContent=`${list.length} Aktivitäten gefunden`;b.querySelector("#gAll").textContent=sel.size?"Keine":"Alle";
-      const g=b.querySelector("#gGo");g.textContent=sel.size?`${sel.size} übertragen`:"Nichts ausgewählt";g.disabled=!sel.size};
-    b.querySelector("#gList").onclick=e=>{const x=e.target.closest("[data-g]");if(!x)return;sel.has(x.dataset.g)?sel.delete(x.dataset.g):sel.add(x.dataset.g);upd()};
-    b.querySelector("#gAll").onclick=()=>{if(sel.size)sel.clear();else list.forEach(a=>sel.add(a.id));upd()};
-    b.querySelector("#gGo").onclick=async e=>{const btn=e.currentTarget;btn.disabled=true;
-      const pick=list.filter(a=>sel.has(a.id));
-      try{for(const a of pick)await store.setEntry(S.me,a.id,{kind:"sport",date:a.date,t:a.t,name:a.name,kcal:activeKcal(a),min:a.min,src:"garmin",kcalTotal:a.kcalTotal});
-        toast(pick.length===1?"Aktivität übertragen":`${pick.length} Aktivitäten übertragen`);closeSheet()}catch(err){writeErr(err);btn.disabled=false}};
-    // schon vorhandene markieren
-    const from=list[list.length-1].date,to=list[0].date;
-    store.foodRange(S.me,from,to).then(ex=>{const ids=new Set(ex.map(e=>e.id));list.forEach(a=>{if(ids.has(a.id)){have.add(a.id);sel.delete(a.id);const h=b.querySelector(`[data-gh="${a.id}"]`);if(h)h.textContent=" · schon da"}});upd()}).catch(()=>{});
-    upd();
+function parseGarminText(t){
+  const lines=t.split(/\n/).map(l=>l.trim()).filter(Boolean);const T=lines.join("\n");
+  const N=s=>{s=String(s).replace(/[.,](?=\d{3}\b)/g,"").replace(",",".");return parseFloat(s)};
+  const r={};
+  // Kalorien: "Aktive Kalorien" bevorzugt, sonst Kalorien gesamt
+  const kc=[];lines.forEach((l,i)=>{if(/kal|kcal|calor/i.test(l)){const near=(l+" "+(lines[i+1]||"")+" "+(lines[i-1]||""));const m=near.match(/(\d{1,2}[.,]?\d{3}|\d{2,4})\s*(?:kcal|kal\b)?/gi);if(m)m.forEach(v=>{const n=N(v);if(n>=5&&n<=8000)kc.push({n,active:/aktiv|active/i.test(l),line:l})})}});
+  const km=T.match(/(\d{1,2}[.,]?\d{3}|\d{2,4})\s*kcal/i);
+  const act=kc.find(k=>k.active);if(act){r.kcal=act.n;r.active=true}else if(kc.length){r.kcal=kc[0].n}else if(km)r.kcal=N(km[1]);
+  // Dauer
+  const tm=[];lines.forEach(l=>{(l.match(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g)||[]).forEach(v=>{const p=v.split(":").map(Number);const min=p.length===3?p[0]*60+p[1]+p[2]/60:p[0]+p[1]/60;tm.push({min,pref:/zeit|dauer|time|duration/i.test(l),clock:/uhr|am|pm/i.test(l)})})});
+  const pt=tm.find(x=>x.pref)||tm.filter(x=>!x.clock&&x.min<600).sort((a,b)=>b.min-a.min)[0];
+  if(pt)r.min=Math.round(pt.min);
+  const hm=!r.min&&T.match(/(\d{1,2})\s*h\s*(\d{1,2})\s*(?:min|m)\b/i);if(hm)r.min=+hm[1]*60+ +hm[2];
+  // Aktivität
+  const TYPES=[["lauf","Laufen"],["run","Laufen"],["rad","Radfahren"],["cycl","Radfahren"],["bik","Radfahren"],["kraft","Krafttraining"],["strength","Krafttraining"],["bodybuild","Bodybuilding"],["geh","Gehen"],["walk","Gehen"],["wander","Wandern"],["hik","Wandern"],["schwimm","Schwimmen"],["swim","Schwimmen"],["yoga","Yoga"],["hiit","HIIT"],["cardio","Cardio"],["ruder","Rudern"],["row","Rudern"],["fußball","Fußball"],["tennis","Tennis"],["ellip","Crosstrainer"]];
+  const low=T.toLowerCase();const ty=TYPES.find(([k])=>low.includes(k));r.name=ty?ty[1]:"Garmin";
+  // Datum
+  const MON={jan:1,feb:2,mär:3,mar:3,apr:4,mai:5,may:5,jun:6,jul:7,aug:8,sep:9,okt:10,oct:10,nov:11,dez:12,dec:12};
+  let dm=T.match(/(\d{1,2})\.(\d{1,2})\.(\d{2,4})/);
+  if(dm){const y=dm[3].length===2?"20"+dm[3]:dm[3];r.date=`${y}-${dm[2].padStart(2,"0")}-${dm[1].padStart(2,"0")}`}
+  else{dm=T.match(/(\d{1,2})\.?\s+(Jan|Feb|Mär|Mar|Apr|Mai|May|Jun|Jul|Aug|Sep|Okt|Oct|Nov|Dez|Dec)[a-zä]*\.?(?:\s+(\d{4}))?/i);
+    if(dm){const y=dm[3]||String(new Date().getFullYear());r.date=`${y}-${String(MON[dm[2].toLowerCase().slice(0,3)]).padStart(2,"0")}-${dm[1].padStart(2,"0")}`}}
+  if(r.date&&(r.date>keyOf(new Date())||!/^\d{4}-\d{2}-\d{2}$/.test(r.date)))delete r.date;
+  return r;
+}
+// Wert zu einem Label über die Position im Bild finden (Garmin: Zahl steht über oder neben dem Label)
+function garminNear(words){
+  const W=words.map(w=>({t:w.text,x0:w.bbox.x0,x1:w.bbox.x1,y0:w.bbox.y0,y1:w.bbox.y1,cx:(w.bbox.x0+w.bbox.x1)/2,cy:(w.bbox.y0+w.bbox.y1)/2,h:w.bbox.y1-w.bbox.y0}));
+  const pick=(labRe,valRe)=>{let best=null;
+    W.filter(w=>labRe.test(w.t)).forEach(L=>{W.forEach(V=>{if(V===L||!valRe.test(V.t))return;
+      const dy=L.cy-V.cy,dx=V.cx-L.cx;let d=null;
+      if(dy>0&&dy<L.h*5&&V.x1>L.x0-L.h*2&&V.x0<L.x1+L.h*2)d=dy+Math.abs(dx)*.5;            // darüber
+      else if(Math.abs(dy)<L.h*.8&&dx>0&&dx<L.h*20)d=dx*.8+L.h;                              // rechts daneben
+      else if(dy<0&&-dy<L.h*3&&V.x1>L.x0-L.h&&V.x0<L.x1+L.h)d=-dy*1.5+Math.abs(dx);          // darunter
+      if(d!=null&&(!best||d<best.d))best={d,V,L}})});return best};
+  const r={};const NUM=/^\d{1,2}[.,]?\d{3}$|^\d{2,4}$/;
+  const a=pick(/^aktiv/i,NUM);const k=a||pick(/^(kalorien|calories|kcal|kal)/i,NUM);
+  if(k){const n=parseFloat(k.V.t.replace(/[.,](?=\d{3}$)/,""));if(n>=5&&n<=8000){r.kcal=n;r.active=!!a}}
+  const t=pick(/^(zeit|dauer|time|duration|gesamtzeit)/i,/^\d{1,2}:\d{2}(:\d{2})?$/);
+  if(t){const q=t.V.t.split(":").map(Number);r.min=Math.round(q.length===3?q[0]*60+q[1]+q[2]/60:q[0]+q[1]/60)}
+  return r;
+}
+async function garminFromImage(file){
+  toast("Bild wird gelesen …");
+  let res={},url=null;
+  try{
+    const P=await prepImage(file);url=P.url;
+    if(!window.Tesseract)await loadScript(TESS);
+    const w=await Tesseract.createWorker(["deu","eng"]);
+    const {data}=await w.recognize(P.canvas,{},{text:true,blocks:true});await w.terminate();
+    data.words=data.words||(data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[])));
+    res=parseGarminText(data.text||"");
+    const near=garminNear(data.words||[]);if(near.kcal){res.kcal=near.kcal;res.active=near.active}if(near.min)res.min=near.min;
+  }catch(err){console.warn(err);toast("Bild konnte nicht gelesen werden – bitte Werte eintragen")}
+  garminConfirm(res,url);
+}
+function garminConfirm(r,url){
+  const day=r.date||S.day;
+  const act=raw=>{if(r.active)return Math.round(raw);const p=S.users[S.me];const pl=p&&plan(p,weightAt(S.weights,day));const m=num($("#gMin")?.value)||r.min||0;return Math.max(0,Math.round(raw-(pl&&m?pl.bmr*m/1440:0)))};
+  const found=r.kcal||r.min;
+  openSheet("Garmin übernehmen",`${url?`<img src="${url}" alt="" style="width:100%;max-height:220px;object-fit:contain;border-radius:16px;background:var(--card)">`:""}
+    <p class="hint" style="margin:0">${found?"Erkannt – kurz prüfen und übernehmen.":"Nichts erkannt – bitte Werte eintragen."}</p>
+    <label class="fld"><span>Aktivität</span><input class="in" id="gName" maxlength="40" value="${esc(r.name||"Garmin")}"></label>
+    <div class="f2"><label class="fld"><span>Datum</span><input class="in" type="date" id="gDate" value="${day}" max="${keyOf(new Date())}"></label>
+    <label class="fld"><span>Dauer min</span><input class="in" type="text" inputmode="numeric" id="gMin" value="${r.min||""}"></label></div>
+    <div class="f2"><label class="fld"><span>Kalorien Garmin</span><input class="in" type="text" inputmode="numeric" id="gTot" value="${r.kcal?Math.round(r.kcal):""}"></label>
+    <label class="fld"><span>Davon aktiv</span><input class="in" type="text" inputmode="numeric" id="gAct" value="${r.kcal?act(r.kcal):""}"></label></div>
+    <p class="hint" style="margin:0">${r.active?"Auf dem Bild standen aktive Kalorien – sie zählen direkt.":"Aktiv = Garmin-Kalorien minus dein Grundumsatz für die Dauer. Nur die aktiven zählen ins Tagesziel."}</p>
+    <button class="btn" id="gGo">Übernehmen</button>`,b=>{
+    const re=()=>{const t=num(b.querySelector("#gTot").value);if(t)b.querySelector("#gAct").value=act(t)};
+    b.querySelector("#gTot").addEventListener("input",re);b.querySelector("#gMin").addEventListener("input",re);
+    b.querySelector("#gGo").onclick=async()=>{
+      const k=Math.round(num(b.querySelector("#gAct").value));if(!k){toast("Bitte die Kalorien eintragen");return}
+      const d=b.querySelector("#gDate").value||S.day,name=b.querySelector("#gName").value.trim()||"Garmin",min=Math.round(num(b.querySelector("#gMin").value))||0;
+      const t=parseKey(d);const now=new Date();t.setHours(now.getHours(),now.getMinutes());
+      try{await store.addFood(S.me,{kind:"sport",date:d,t:d===keyOf(now)?entryTime():t.getTime(),name,kcal:k,min,src:"garmin",kcalTotal:Math.round(num(b.querySelector("#gTot").value))||k});
+        closeSheet();toast(`${name} · + ${fmt(k)} kcal`)}catch(err){writeErr(err)}};
   });
 }
 
@@ -2465,7 +2505,7 @@ async function openCalendar(){
           if(goal==="lose"&&diff>0)cls="bad";if(goal==="gain"&&diff<0)cls="bad";sumD+=diff}
         info[k]={DS,gl,diff,cls};sumE+=DS.eaten;nE++;if(cls==="ok")nOk++;
         col.push({k,cls})}cols.push(col)}
-      const W=Math.min(el.parentElement.clientWidth||340,520)-24,gap=weeks>20?2:weeks>8?4:6;
+      const W=Math.min(el.getBoundingClientRect().width||340,520)-30,gap=weeks>20?2:weeks>8?4:6;
       const sz=Math.max(4,Math.min(38,Math.floor((W-gap*(weeks-1))/weeks)));
       const MON=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];let last=-1;
       const ml=cols.map(c=>{const m=parseKey(c[0].k).getMonth();const t=m!==last?MON[m]:"";last=m;return `<span>${weeks>20&&t?t.slice(0,1):t}</span>`}).join("");
