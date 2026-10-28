@@ -526,7 +526,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="33";
+const APP_VERSION="34";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -1162,7 +1162,11 @@ function notifyMount(b){
   };
   b.querySelector("#ntAdd").onclick=()=>{n.reminders.push({t:n.reminders.length?"20:00":"12:30",text:""});draw();saveNotify(n);const ins=b.querySelectorAll('#ntList [data-nf="t"]');ins[ins.length-1]&&ins[ins.length-1].focus()};
   b.querySelector("#ntList").addEventListener("click",e=>{const d=e.target.closest("[data-del]");if(!d)return;n.reminders.splice(+d.dataset.del,1);draw();saveNotify(n)});
-  b.querySelector("#ntList").addEventListener("change",e=>{const row=e.target.closest(".nrow");if(!row)return;const r=n.reminders[+row.dataset.i];if(!r)return;r[e.target.dataset.nf]=e.target.dataset.nf==="t"?(e.target.value||r.t):e.target.value.trim();n.reminders.sort((a,c)=>a.t.localeCompare(c.t));draw();saveNotify(n)});
+  // Beim Drehen am Uhrzeit-Rad nur speichern – nicht neu zeichnen, sonst schließt iOS das Rad
+  const upd=e=>{const row=e.target.closest(".nrow");if(!row)return;const r=n.reminders[+row.dataset.i];if(!r)return;r[e.target.dataset.nf]=e.target.dataset.nf==="t"?(e.target.value||r.t):e.target.value.trim();saveNotify(n)};
+  b.querySelector("#ntList").addEventListener("change",upd);
+  b.querySelector("#ntList").addEventListener("input",e=>{if(e.target.dataset.nf==="t")upd(e)});
+  b.querySelector("#ntList").addEventListener("focusout",e=>{if(e.target.dataset.nf!=="t")return;setTimeout(()=>{if(b.querySelector("#ntList").contains(document.activeElement))return;const sorted=[...n.reminders].sort((a,c)=>a.t.localeCompare(c.t));if(sorted.some((x,i)=>x!==n.reminders[i])){n.reminders.splice(0,n.reminders.length,...sorted);draw()}},300)});
   b.querySelector("#ntFr").onclick=()=>{n.friends=n.friends===false;draw();saveNotify(n)};
   b.querySelector("#ntBk").onclick=()=>{n.backup=n.backup===false;draw();saveNotify(n)};
   b.querySelector("#ntBkT").onchange=e=>{if(e.target.value){n.backupTime=e.target.value;saveNotify(n)}};
