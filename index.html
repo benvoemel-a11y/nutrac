@@ -1203,7 +1203,7 @@ function resubscribe(){
   foodUnsub&&foodUnsub();weightUnsub&&weightUnsub();
   if(!S.view){S.food=[];S.weights=[];render();return}
   foodUnsub=store.food(S.view,S.day,list=>{S.food=list;renderToday()});
-  weightUnsub=store.weights(S.view,list=>{S.weights=list;render()});
+  weightUnsub=store.weights(S.view,list=>{S.weights=list;render();if($("#sheet").classList.contains("on")&&sheetCur===weightList){navBack=true;try{weightList()}finally{navBack=false}}});
 }
 
 /* ---------- Ereignisse ---------- */
@@ -1703,11 +1703,24 @@ function openEntry(id){
 }
 function openWeight(date){
   const w=S.weights.find(x=>x.date===date);if(!w)return;
-  openSheet(parseKey(date).toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"}),
-  `<label class="fld"><span>Gewicht ${UNIT()}</span><input class="in big-in" type="text" inputmode="decimal" id="ewKg" value="${fw(w.kg)}" autocomplete="off"></label>
-   <button class="btn" id="ewSave">Ändern</button><button class="btn danger" id="ewDel">Löschen</button>`,
+  openSheet("Gewicht ändern",
+  `<div class="f2">
+     <label class="fld"><span>Datum</span><input class="in" type="date" id="ewDate" value="${date}" max="${keyOf(new Date())}"></label>
+     <label class="fld"><span>Gewicht ${UNIT()}</span><input class="in big-in" type="text" inputmode="decimal" id="ewKg" value="${fw(w.kg)}" autocomplete="off"></label>
+   </div>
+   <p class="hint" id="ewHint" style="margin:0"></p>
+   <button class="btn" id="ewSave">Speichern</button><button class="btn danger" id="ewDel">Löschen</button>`,
   b=>{
-    b.querySelector("#ewSave").onclick=async()=>{if(await saveWeight(date,b.querySelector("#ewKg").value))done()};
+    const dIn=b.querySelector("#ewDate"),hint=b.querySelector("#ewHint");let sure=false;
+    dIn.addEventListener("input",()=>{sure=false;const nd=dIn.value;hint.textContent=nd&&nd!==date&&S.weights.some(x=>x.date===nd)?"Am neuen Datum gibt es schon einen Eintrag – er wird ersetzt.":""});
+    b.querySelector("#ewSave").onclick=async()=>{
+      const nd=dIn.value||date;
+      if(nd>keyOf(new Date())){toast("Datum liegt in der Zukunft");return}
+      if(nd!==date&&S.weights.some(x=>x.date===nd)&&!sure){sure=true;hint.textContent="Am neuen Datum gibt es schon einen Eintrag. Nochmal auf Speichern tippen, um ihn zu ersetzen.";return}
+      if(!(await saveWeight(nd,b.querySelector("#ewKg").value)))return;
+      if(nd!==date){try{await store.delWeight(S.me,date)}catch(err){writeErr(err);return}}
+      done();
+    };
     b.querySelector("#ewDel").onclick=async()=>{try{await store.delWeight(S.me,date);toast("Gelöscht");done()}catch(err){writeErr(err)}};
   });
 }
