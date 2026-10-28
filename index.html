@@ -559,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="44";
+const APP_VERSION="45";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -1857,6 +1857,10 @@ function sportForm(){
     </div>
     <p class="hint">Die kcal z. B. von der Uhr übernehmen. Sie werden zu deinem Tagesziel addiert.</p>
     <button class="btn" id="sAdd">Hinzufügen</button>
+    <div class="sec"><h4>Extra Schritte</h4><span>zusätzlich gegangen</span></div>
+    <div class="f2"><label class="fld"><span>Schritte</span><input class="in" type="text" inputmode="numeric" id="xSteps" placeholder="z. B. 1800" autocomplete="off"></label>
+    <div class="fld"><span>Verbrannt</span><div class="in" id="xK" style="display:flex;align-items:center;color:var(--muted)">– kcal</div></div></div>
+    <button class="btn ghost" id="xAdd">Schritte hinzufügen</button>
     <div class="sec"><h4>Aus einer App</h4><span>Foto oder Datei</span></div>
     <label class="btn ghost" style="position:relative;cursor:pointer">Foto oder Datei übernehmen<input type="file" accept="image/*,application/pdf,.pdf" id="sGarmin" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%"></label>
     <p class="hint" style="margin:0">Screenshot oder PDF einer Einheit aus Garmin, Apple Fitness, Strava, Polar & Co. – Sportart, Dauer und Kalorien werden ausgelesen.</p>`,
@@ -1866,6 +1870,11 @@ function sportForm(){
     b.querySelectorAll("[data-rtadd]").forEach(x=>x.onclick=async()=>{
       const r=S.routines.find(q=>q.id===x.dataset.rtadd);if(!r)return;
       try{await store.addFood(S.me,{kind:"sport",date:S.day,t:entryTime(),name:r.name,kcal:num(r.kcal),min:num(r.min)||0,routineId:r.id});closeSheet();toast(`${r.name} · + ${fmt(r.kcal)} kcal`)}catch(err){writeErr(err)}});
+    const xk=()=>{const p=S.users[S.me];const pl=p&&plan(p,latestWeight(S.weights));const n=Math.round(num(String(b.querySelector("#xSteps").value).replace(/\./g,"")));return pl&&n?pl.stepK(n):0};
+    b.querySelector("#xSteps").addEventListener("input",()=>{const k=xk();b.querySelector("#xK").textContent=k?`+ ${fmt(k)} kcal`:"– kcal"});
+    b.querySelector("#xAdd").onclick=async()=>{const n=Math.round(num(String(b.querySelector("#xSteps").value).replace(/\./g,"")));const k=xk();
+      if(!n||!k){toast(n?"Erst Profil mit Gewicht anlegen":"Bitte die Schritte eintragen");return}
+      try{await store.addFood(S.me,{kind:"sport",date:S.day,t:entryTime(),name:`${fmt(n)} extra Schritte`,kcal:k,min:0,steps:n,src:"steps"});closeSheet();toast(`${fmt(n)} Schritte · + ${fmt(k)} kcal`)}catch(err){writeErr(err)}};
     b.querySelector("#sGarmin").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(f)garminFromImage(f)};
     b.querySelector("#sAdd").onclick=async()=>{
       const k=Math.round(num(b.querySelector("#sK").value));if(!k){toast("Bitte die verbrannten kcal eintragen");return}
