@@ -559,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="36";
+const APP_VERSION="37";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -1843,13 +1843,18 @@ function sportForm(){
       <label class="fld"><span>Verbrannt kcal</span><input class="in" type="text" inputmode="numeric" id="sK" placeholder="250"></label>
     </div>
     <p class="hint">Die kcal z. B. von der Uhr übernehmen. Sie werden zu deinem Tagesziel addiert.</p>
-    <button class="btn" id="sAdd">Hinzufügen</button>`,
+    <button class="btn" id="sAdd">Hinzufügen</button>
+    <div class="sec"><h4>Garmin</h4><span>CSV-Export</span></div>
+    <label class="btn ghost" style="position:relative;cursor:pointer">Von Garmin übernehmen<input type="file" accept=".csv,text/csv" id="sGarmin" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%"></label>
+    <p class="hint" style="margin:0">Garmin Connect im Browser → Aktivitäten → Alle Aktivitäten → „CSV exportieren“. Die Datei hier wählen, dann aussuchen, was übernommen wird.</p>`,
   b=>{
     b.querySelector("#rtNew").onclick=()=>routineForm(null);
     b.querySelectorAll("[data-rted]").forEach(x=>x.onclick=()=>routineForm(S.routines.find(r=>r.id===x.dataset.rted)));
     b.querySelectorAll("[data-rtadd]").forEach(x=>x.onclick=async()=>{
       const r=S.routines.find(q=>q.id===x.dataset.rtadd);if(!r)return;
       try{await store.addFood(S.me,{kind:"sport",date:S.day,t:entryTime(),name:r.name,kcal:num(r.kcal),min:num(r.min)||0,routineId:r.id});closeSheet();toast(`${r.name} · + ${fmt(r.kcal)} kcal`)}catch(err){writeErr(err)}});
+    b.querySelector("#sGarmin").onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;
+      try{garminPreview(parseGarminCsv(await f.text()))}catch(err){console.warn(err);toast(err&&err.message==="nodata"?"Keine Garmin-Aktivitäten in der Datei gefunden":"Datei konnte nicht gelesen werden")}};
     b.querySelector("#sAdd").onclick=async()=>{
       const k=Math.round(num(b.querySelector("#sK").value));if(!k){toast("Bitte die verbrannten kcal eintragen");return}
       const name=b.querySelector("#sName").value.trim()||"Sport";
@@ -2373,6 +2378,57 @@ async function doImport(list){
     if(S.users[S.me]&&lw&&Math.abs((S.users[S.me].weight||0)-lw)>.05)await store.saveProfile(S.me,{...S.users[S.me],weight:lw});
     toast(list.length===1?"Withings-Werte übertragen":`${list.length} Messungen übertragen`);closeSheet();
   }catch(err){writeErr(err)}
+}
+
+/* ---------- Garmin: Aktivitäten aus CSV ---------- */
+function parseGarminCsv(txt){
+  txt=txt.replace(/^﻿/,"");const lines=txt.split(/\r?\n/).filter(x=>x.trim());if(lines.length<2)throw new Error("nodata");
+  const sep=(lines[0].match(/;/g)||[]).length>(lines[0].match(/,/g)||[]).length?";":",";
+  const split=l=>{const out=[];let cur="",q=false;for(const ch of l){if(ch==='"'){q=!q;continue}if(ch===sep&&!q){out.push(cur);cur="";continue}cur+=ch}out.push(cur);return out.map(x=>x.trim())};
+  const H=split(lines[0]).map(h=>h.toLowerCase());
+  const ix=(...res)=>{for(const re of res){const i=H.findIndex(h=>re.test(h));if(i>=0)return i}return -1};
+  const ci={type:ix(/^(activity type|aktivitätstyp|aktivitätsart)$/,/(activity type|aktivität)/),date:ix(/^(date|datum)$/,/(date|datum)/),title:ix(/^(title|titel)$/),kcal:ix(/^(calories|kalorien)$/,/(calories|kalorien)/),time:ix(/^(time|zeit)$/,/^(total time|gesamtzeit|elapsed time|verstrichene zeit)$/,/(time|zeit)/),dist:ix(/^(distance|distanz|strecke)$/)};
+  if(ci.date<0||ci.kcal<0)throw new Error("nodata");
+  const N=s=>{if(s==null)return 0;s=String(s).trim();if(!s||s==="--")return 0;s=s.replace(/[.,](?=\d{3}(\D|$))/g,"").replace(",",".");const v=parseFloat(s);return isFinite(v)?v:0};
+  const dur=s=>{const p=String(s||"").split(":").map(x=>parseFloat(x.replace(",","."))||0);if(p.length===3)return p[0]*60+p[1]+p[2]/60;if(p.length===2)return p[0]+p[1]/60;return N(s)};
+  const out=[];
+  for(const l of lines.slice(1)){const c=split(l);const raw=c[ci.date]||"";
+    let m=raw.match(/(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?/),k=null,hh=12,mi=0;
+    if(m){k=`${m[1]}-${m[2]}-${m[3]}`;if(m[4]){hh=+m[4];mi=+m[5]}}
+    else{m=raw.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\D+(\d{1,2}):(\d{2}))?/);if(m){k=`${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;if(m[4]){hh=+m[4];mi=+m[5]}}}
+    if(!k||k>keyOf(new Date()))continue;
+    const kcal=N(c[ci.kcal]);if(!kcal)continue;
+    const min=ci.time>=0?Math.round(dur(c[ci.time])):0;
+    const type=ci.type>=0?c[ci.type]:"",title=ci.title>=0?c[ci.title]:"";
+    const t=parseKey(k);t.setHours(hh,mi,0,0);
+    out.push({id:`garmin-${k}-${String(hh).padStart(2,"0")}${String(mi).padStart(2,"0")}`,date:k,t:t.getTime(),name:(title||type||"Sport").slice(0,40),type,min,kcalTotal:Math.round(kcal)});
+  }
+  if(!out.length)throw new Error("nodata");
+  return out.sort((a,b)=>b.t-a.t);
+}
+function activeKcal(a){const p=S.users[S.me];const pl=p&&plan(p,weightAt(S.weights,a.date));const rest=pl&&a.min?pl.bmr*a.min/1440:0;return Math.max(0,Math.round(a.kcalTotal-rest))}
+function garminPreview(list){
+  const have=new Set();
+  const sel=new Set(list.map(a=>a.id));
+  const dl=k=>parseKey(k).toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"});
+  openSheet("Garmin übertragen",`<div class="card" style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center"><span class="hint" style="margin:0;text-transform:none;letter-spacing:0" id="gCount"></span><button class="lnk" id="gAll">Keine</button></div>
+    <div class="card flush"><div class="list" id="gList">${list.map(a=>`<button class="row" data-g="${esc(a.id)}" style="gap:12px"><span class="check" aria-pressed="true" style="pointer-events:none"><i></i></span><span class="n">${esc(a.name)}<small>${esc(dl(a.date))}${a.min?" · "+fmt(a.min)+" min":""}<span class="gh" data-gh="${esc(a.id)}"></span></small></span><span class="k">+ ${fmt(activeKcal(a))}</span></button>`).join("")}</div></div>
+    <p class="hint" style="margin:0">Gezählt werden nur die aktiven Kalorien: Garmin-Kalorien minus dein Grundumsatz für die Dauer. Schon übertragene Aktivitäten werden nicht doppelt angelegt.</p>
+    <button class="btn" id="gGo"></button>`,b=>{
+    const upd=()=>{b.querySelectorAll("[data-g]").forEach(x=>x.querySelector(".check").setAttribute("aria-pressed",String(sel.has(x.dataset.g))));
+      b.querySelector("#gCount").textContent=`${list.length} Aktivitäten gefunden`;b.querySelector("#gAll").textContent=sel.size?"Keine":"Alle";
+      const g=b.querySelector("#gGo");g.textContent=sel.size?`${sel.size} übertragen`:"Nichts ausgewählt";g.disabled=!sel.size};
+    b.querySelector("#gList").onclick=e=>{const x=e.target.closest("[data-g]");if(!x)return;sel.has(x.dataset.g)?sel.delete(x.dataset.g):sel.add(x.dataset.g);upd()};
+    b.querySelector("#gAll").onclick=()=>{if(sel.size)sel.clear();else list.forEach(a=>sel.add(a.id));upd()};
+    b.querySelector("#gGo").onclick=async e=>{const btn=e.currentTarget;btn.disabled=true;
+      const pick=list.filter(a=>sel.has(a.id));
+      try{for(const a of pick)await store.setEntry(S.me,a.id,{kind:"sport",date:a.date,t:a.t,name:a.name,kcal:activeKcal(a),min:a.min,src:"garmin",kcalTotal:a.kcalTotal});
+        toast(pick.length===1?"Aktivität übertragen":`${pick.length} Aktivitäten übertragen`);closeSheet()}catch(err){writeErr(err);btn.disabled=false}};
+    // schon vorhandene markieren
+    const from=list[list.length-1].date,to=list[0].date;
+    store.foodRange(S.me,from,to).then(ex=>{const ids=new Set(ex.map(e=>e.id));list.forEach(a=>{if(ids.has(a.id)){have.add(a.id);sel.delete(a.id);const h=b.querySelector(`[data-gh="${a.id}"]`);if(h)h.textContent=" · schon da"}});upd()}).catch(()=>{});
+    upd();
+  });
 }
 
 /* ---------- Kalender ---------- */
