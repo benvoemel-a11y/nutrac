@@ -67,7 +67,7 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .page::-webkit-scrollbar{display:none}
 .track{display:flex;height:100%;transition:transform .42s cubic-bezier(.2,.9,.25,1);will-change:transform}
 .page{flex:0 0 100%;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
-  padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px));padding-block:8px 34px;box-sizing:border-box}
+  padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px));padding-block:8px 96px;box-sizing:border-box}
 .page-in{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
 
 /* Kopf */
@@ -247,6 +247,11 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .macro .bar{height:6px}
 .macro .num{font-size:13px;color:var(--muted);min-width:86px;text-align:right}
 
+.fab{position:absolute;right:max(20px,env(safe-area-inset-right,0px));bottom:calc(max(6px,calc(env(safe-area-inset-bottom,0px) - 16px)) + 58px);z-index:5;transition:transform .3s cubic-bezier(.22,.8,.24,1),opacity .2s}
+.fab button{width:62px;height:62px;border-radius:50%;background:var(--ink);color:var(--knob);display:grid;place-items:center;box-shadow:0 8px 24px rgba(0,0,0,.35);transition:transform .15s}
+.fab button:active{transform:scale(.9)}
+.fab svg{width:26px;height:26px}
+.fab.off{opacity:0;transform:scale(.6);pointer-events:none}
 .addrow{display:flex;align-items:center;gap:14px}
 .plus{width:48px;height:48px}
 .plus svg{width:22px;height:22px}
@@ -428,10 +433,6 @@ button{background:none;border:0;padding:0;cursor:pointer}
           <div class="blk" data-block="plan" hidden><div class="card flush" id="planCard"></div></div>
 
           <div class="blk" data-block="entries">
-          <div class="addrow" id="addRow">
-            <button class="circle plus" id="addBtn" aria-label="Eintrag hinzufügen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v16M4 12h16"/></svg></button>
-            <span>Scannen, eintragen oder Sport</span>
-          </div>
 
           <div class="card flush"><div class="list" id="entries"></div></div>
           </div>
@@ -448,6 +449,7 @@ button{background:none;border:0;padding:0;cursor:pointer}
 
     </div>
   </div>
+  <div class="fab" id="addRow"><button id="addBtn" aria-label="Eintrag hinzufügen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button></div>
   <nav class="dots" aria-label="Seiten">
     <button data-p="0" aria-label="Heute" aria-current="true"><i></i></button>
     <button data-p="1" aria-label="Freunde" aria-current="false"><i></i></button>
@@ -482,7 +484,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="20";
+const APP_VERSION="21";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#d93f37"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]))}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -1274,6 +1276,7 @@ function go(i){
   $("#track").style.transform=`translateX(${-S.page*100}%)`;
   document.querySelectorAll(".dots button").forEach(b=>b.setAttribute("aria-current",String(+b.dataset.p===S.page)));
   if(S.page===0) requestAnimationFrame(renderWeight);
+  $("#addRow").classList.toggle("off",S.page!==0);
 }
 document.querySelectorAll(".dots button").forEach(b=>b.onclick=()=>go(+b.dataset.p));
 (function swipe(){
