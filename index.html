@@ -247,7 +247,10 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .tabs{display:flex;gap:4px}
 .tabs button{font-family:var(--mono);font-size:12px;padding:4px 9px;border-radius:999px;color:var(--faint)}
 .tabs button[aria-pressed="true"]{background:var(--ink);color:var(--knob)}
-.chart{width:100%;height:200px;display:block;margin-top:12px}
+.chart{width:100%;height:200px;display:block;margin-top:12px;touch-action:pan-y;cursor:crosshair}
+.chart .sl{stroke:var(--ink);stroke-width:1;stroke-dasharray:3 3}
+.chart .sc{fill:var(--ink);stroke:var(--card);stroke-width:2}
+.chart .stxt{fill:var(--fg);font-weight:600}
 .chart text{font-family:var(--mono);font-size:11px;fill:var(--faint)}
 .chart .grid{stroke:var(--line);stroke-width:1}
 .chart .ln{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
@@ -783,7 +786,33 @@ function drawChart(all,svg,range,H){
   const e=pts[pts.length-1];g+=`<circle class="end" cx="${e[0]}" cy="${e[1]}" r="5"/>`;
   const dl=k=>parseKey(k).toLocaleDateString("de-DE",{day:"numeric",month:"short"});
   g+=`<text x="${L}" y="${H-6}">${dl(ws[0].date)}</text><text x="${W-R}" y="${H-6}" text-anchor="end">${dl(ws[ws.length-1].date)}</text>`;
+  g+=`<g class="scrub" visibility="hidden"><line class="sl" x1="0" x2="0" y1="${T}" y2="${H-B}"/><circle class="sc" r="6" cx="0" cy="0"/></g>`;
   svg.innerHTML=g;
+  svg._scrub={pts:ws.map((w,i)=>({x:pts[i][0],y:pts[i][1],date:w.date,kg:w.kg}))};
+  bindScrub(svg);
+}
+function bindScrub(svg){
+  if(svg._bound)return;svg._bound=true;
+  let active=false;
+  const isMain=svg.id==="chart";
+  const show=ev=>{
+    const sc=svg._scrub;if(!sc||!sc.pts.length)return;
+    const r=svg.getBoundingClientRect(),vb=svg.viewBox.baseVal;
+    const px=(ev.clientX-r.left)*(vb.width/r.width);
+    let best=sc.pts[0];sc.pts.forEach(q=>{if(Math.abs(q.x-px)<Math.abs(best.x-px))best=q});
+    const gq=svg.querySelector(".scrub");if(!gq)return;
+    gq.setAttribute("visibility","visible");
+    const ln=gq.querySelector(".sl"),c=gq.querySelector(".sc");
+    ln.setAttribute("x1",best.x);ln.setAttribute("x2",best.x);c.setAttribute("cx",best.x);c.setAttribute("cy",best.y);
+    const lbl=`${fmt(best.kg,1)} ${UNIT()} · ${parseKey(best.date).toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"})}`;
+    if(isMain){$("#wNow").textContent=fmt(best.kg,1);$("#wDelta").textContent=parseKey(best.date).toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
+    else{let t=svg.querySelector(".stxt");if(!t){t=document.createElementNS("http://www.w3.org/2000/svg","text");t.setAttribute("class","stxt");svg.appendChild(t)}
+      t.textContent=lbl;t.setAttribute("x",Math.min(Math.max(best.x,60),vb.width-60));t.setAttribute("y",12);t.setAttribute("text-anchor","middle")}
+  };
+  const hide=()=>{active=false;const gq=svg.querySelector(".scrub");if(gq)gq.setAttribute("visibility","hidden");const t=svg.querySelector(".stxt");if(t)t.remove();if(isMain)renderWeight()};
+  svg.addEventListener("pointerdown",ev=>{active=true;try{svg.setPointerCapture(ev.pointerId)}catch(e){}show(ev)});
+  svg.addEventListener("pointermove",ev=>{if(active)show(ev)});
+  svg.addEventListener("pointerup",hide);svg.addEventListener("pointercancel",hide);svg.addEventListener("pointerleave",()=>{if(active)hide()});
 }
 
 /* Profil (im Rädchen) */
