@@ -559,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="42";
+const APP_VERSION="43";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -1844,9 +1844,9 @@ function sportForm(){
     </div>
     <p class="hint">Die kcal z. B. von der Uhr übernehmen. Sie werden zu deinem Tagesziel addiert.</p>
     <button class="btn" id="sAdd">Hinzufügen</button>
-    <div class="sec"><h4>Garmin</h4><span>Screenshot</span></div>
-    <label class="btn ghost" style="position:relative;cursor:pointer">Von Garmin übernehmen<input type="file" accept="image/*" id="sGarmin" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%"></label>
-    <p class="hint" style="margin:0">Screenshot der Aktivität aus Garmin Connect wählen – Zeit und Kalorien werden ausgelesen.</p>`,
+    <div class="sec"><h4>Aus einer App</h4><span>Foto oder Datei</span></div>
+    <label class="btn ghost" style="position:relative;cursor:pointer">Foto oder Datei übernehmen<input type="file" accept="image/*,application/pdf,.pdf" id="sGarmin" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%"></label>
+    <p class="hint" style="margin:0">Screenshot oder PDF einer Einheit aus Garmin, Apple Fitness, Strava, Polar & Co. – Sportart, Dauer und Kalorien werden ausgelesen.</p>`,
   b=>{
     b.querySelector("#rtNew").onclick=()=>routineForm(null);
     b.querySelectorAll("[data-rted]").forEach(x=>x.onclick=()=>routineForm(S.routines.find(r=>r.id===x.dataset.rted)));
@@ -2406,8 +2406,8 @@ function parseGarminText(t){
   if(pt)r.min=Math.round(pt.min);
   const hm=!r.min&&T.match(/(\d{1,2})\s*h\s*(\d{1,2})\s*(?:min|m)\b/i);if(hm)r.min=+hm[1]*60+ +hm[2];
   // Aktivität
-  const TYPES=[["lauf","Laufen"],["run","Laufen"],["rad","Radfahren"],["cycl","Radfahren"],["bik","Radfahren"],["kraft","Krafttraining"],["strength","Krafttraining"],["bodybuild","Bodybuilding"],["geh","Gehen"],["walk","Gehen"],["wander","Wandern"],["hik","Wandern"],["schwimm","Schwimmen"],["swim","Schwimmen"],["yoga","Yoga"],["hiit","HIIT"],["cardio","Cardio"],["ruder","Rudern"],["row","Rudern"],["fußball","Fußball"],["tennis","Tennis"],["ellip","Crosstrainer"]];
-  const low=T.toLowerCase();const ty=TYPES.find(([k])=>low.includes(k));r.name=ty?ty[1]:"Garmin";
+  const TYPES=[["lauf","Laufen"],["run","Laufen"],["rad","Radfahren"],["cycl","Radfahren"],["bik","Radfahren"],["kraft","Krafttraining"],["strength","Krafttraining"],["bodybuild","Bodybuilding"],["geh","Gehen"],["walk","Gehen"],["wander","Wandern"],["hik","Wandern"],["schwimm","Schwimmen"],["swim","Schwimmen"],["yoga","Yoga"],["hiit","HIIT"],["cardio","Cardio"],["ruder","Rudern"],["row","Rudern"],["fußball","Fußball"],["tennis","Tennis"],["ellip","Crosstrainer"],["tanz","Tanzen"],["dance","Tanzen"],["box","Boxen"],["kletter","Klettern"],["climb","Klettern"],["pilates","Pilates"],["spinning","Spinning"],["indoor cycl","Indoor-Rad"],["laufband","Laufband"],["treadmill","Laufband"],["ski","Ski"],["basketball","Basketball"],["volleyball","Volleyball"],["badminton","Badminton"],["padel","Padel"],["golf","Golf"],["workout","Workout"],["training","Training"]];
+  const low=" "+T.toLowerCase().replace(/[^a-zäöüß ]+/g," ");const ty=TYPES.find(([k])=>new RegExp("[ -]"+k).test(low));r.name=ty?ty[1]:"Sport";
   // Datum
   const MON={jan:1,feb:2,mär:3,mar:3,apr:4,mai:5,may:5,jun:6,jul:7,aug:8,sep:9,okt:10,oct:10,nov:11,dez:12,dec:12};
   let dm=T.match(/(\d{1,2})\.(\d{1,2})\.(\d{2,4})/);
@@ -2419,26 +2419,40 @@ function parseGarminText(t){
 }
 // Wert zu einem Label über die Position im Bild finden (Garmin: Zahl steht über oder neben dem Label)
 function garminNear(words){
-  const W=words.map(w=>({t:w.text,x0:w.bbox.x0,x1:w.bbox.x1,y0:w.bbox.y0,y1:w.bbox.y1,cx:(w.bbox.x0+w.bbox.x1)/2,cy:(w.bbox.y0+w.bbox.y1)/2,h:w.bbox.y1-w.bbox.y0}));
+  const W=words.map(w=>({t:String(w.text).replace(/(kcal|kal|cal)$/i,"").replace(/[^\d:.,]+$/,"")||w.text,x0:w.bbox.x0,x1:w.bbox.x1,y0:w.bbox.y0,y1:w.bbox.y1,cx:(w.bbox.x0+w.bbox.x1)/2,cy:(w.bbox.y0+w.bbox.y1)/2,h:w.bbox.y1-w.bbox.y0}));
   const pick=(labRe,valRe)=>{let best=null;
     W.filter(w=>labRe.test(w.t)).forEach(L=>{W.forEach(V=>{if(V===L||!valRe.test(V.t))return;
       const dy=L.cy-V.cy,dx=V.cx-L.cx;let d=null;
-      if(dy>0&&dy<L.h*5&&V.x1>L.x0-L.h*2&&V.x0<L.x1+L.h*2)d=dy+Math.abs(dx)*.5;            // darüber
+      const ov=V.x1>L.x0-L.h*2&&V.x0<L.x1+L.h*2;
+      if(dy>0&&dy<L.h*5&&ov)d=dy+Math.abs(dx)*.3;                                          // darüber (Garmin, Strava)
+      else if(dy<0&&-dy<L.h*5&&ov)d=-dy*1.15+Math.abs(dx)*.3;                               // darunter (Apple Fitness)
       else if(Math.abs(dy)<L.h*.8&&dx>0&&dx<L.h*20)d=dx*.8+L.h;                              // rechts daneben
-      else if(dy<0&&-dy<L.h*3&&V.x1>L.x0-L.h&&V.x0<L.x1+L.h)d=-dy*1.5+Math.abs(dx);          // darunter
       if(d!=null&&(!best||d<best.d))best={d,V,L}})});return best};
   const r={};const NUM=/^\d{1,2}[.,]?\d{3}$|^\d{2,4}$/;
   const a=pick(/^aktiv/i,NUM);const k=a||pick(/(kalorien|calories|kcal)/i,NUM);
   if(k){const n=parseFloat(k.V.t.replace(/[.,](?=\d{3}$)/,""));if(n>=5&&n<=8000){r.kcal=n;r.active=!!a}}
-  const t=pick(/(zeit|dauer|time|duration)/i,/^\d{1,2}:\d{2}(:\d{2})?$/);
+  const t=pick(/(zeit|dauer|time|duration|trainingszeit|elapsed|moving)/i,/^\d{1,2}:\d{2}(:\d{2})?$/);
   if(t){const q=t.V.t.split(":").map(Number);r.min=Math.round(q.length===3?q[0]*60+q[1]+q[2]/60:q[0]+q[1]/60)}
   return r;
 }
+async function pdfToCanvas(file){
+  if(!window.pdfjsLib)await loadScript(PDFJS);pdfjsLib.GlobalWorkerOptions.workerSrc=PDFJS_W;
+  const doc=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const pg=await doc.getPage(1);
+  const tc=await pg.getTextContent();const text=tc.items.map(x=>x.str+(x.hasEOL?"\n":" ")).join("");
+  const vp=pg.getViewport({scale:2});const c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;
+  await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;return {text,canvas:c};
+}
 async function garminFromImage(file){
-  toast("Bild wird gelesen …");
+  toast("Wird gelesen …");
   let res={},url=null;
   try{
-    const P=await prepImage(file);url=P.url;
+    if(file.type==="application/pdf"||/\.pdf$/i.test(file.name||"")){
+      const R=await pdfToCanvas(file);url=R.canvas.toDataURL("image/jpeg",.7);
+      res=parseGarminText(R.text);
+      if(res.kcal){garminConfirm(res,url);return}
+      const f2=await new Promise(r=>R.canvas.toBlob(r,"image/png"));file=new File([f2],"seite.png",{type:"image/png"});
+    }
+    const P=await prepImage(file);url=url||P.url;
     if(!window.Tesseract)await loadScript(TESS);
     const w=await Tesseract.createWorker(["deu","eng"]);
     const {data}=await w.recognize(P.canvas,{},{text:true,blocks:true});await w.terminate();
@@ -2452,20 +2466,20 @@ function garminConfirm(r,url){
   const day=r.date||S.day;
   const act=raw=>{if(r.active)return Math.round(raw);const p=S.users[S.me];const pl=p&&plan(p,weightAt(S.weights,day));const m=num($("#gMin")?.value)||r.min||0;return Math.max(0,Math.round(raw-(pl&&m?pl.bmr*m/1440:0)))};
   const found=r.kcal||r.min;
-  openSheet("Garmin übernehmen",`${url?`<img src="${url}" alt="" style="width:100%;max-height:220px;object-fit:contain;border-radius:16px;background:var(--card)">`:""}
+  openSheet("Sport übernehmen",`${url?`<img src="${url}" alt="" style="width:100%;max-height:220px;object-fit:contain;border-radius:16px;background:var(--card)">`:""}
     <p class="hint" style="margin:0">${found?"Erkannt – kurz prüfen und übernehmen.":"Nichts erkannt – bitte Werte eintragen."}</p>
-    <label class="fld"><span>Aktivität</span><input class="in" id="gName" maxlength="40" value="${esc(r.name||"Garmin")}"></label>
+    <label class="fld"><span>Aktivität</span><input class="in" id="gName" maxlength="40" value="${esc(r.name||"Sport")}"></label>
     <div class="f2"><label class="fld"><span>Datum</span><input class="in" type="date" id="gDate" value="${day}" max="${keyOf(new Date())}"></label>
     <label class="fld"><span>Dauer min</span><input class="in" type="text" inputmode="numeric" id="gMin" value="${r.min||""}"></label></div>
-    <div class="f2"><label class="fld"><span>Kalorien Garmin</span><input class="in" type="text" inputmode="numeric" id="gTot" value="${r.kcal?Math.round(r.kcal):""}"></label>
+    <div class="f2"><label class="fld"><span>Kalorien laut App</span><input class="in" type="text" inputmode="numeric" id="gTot" value="${r.kcal?Math.round(r.kcal):""}"></label>
     <label class="fld"><span>Davon aktiv</span><input class="in" type="text" inputmode="numeric" id="gAct" value="${r.kcal?act(r.kcal):""}"></label></div>
-    <p class="hint" style="margin:0">${r.active?"Auf dem Bild standen aktive Kalorien – sie zählen direkt.":"Aktiv = Garmin-Kalorien minus dein Grundumsatz für die Dauer. Nur die aktiven zählen ins Tagesziel."}</p>
+    <p class="hint" style="margin:0">${r.active?"Auf dem Bild standen aktive Kalorien – sie zählen direkt.":"Aktiv = Kalorien laut App minus dein Grundumsatz für die Dauer. Nur die aktiven zählen ins Tagesziel."}</p>
     <button class="btn" id="gGo">Übernehmen</button>`,b=>{
     const re=()=>{const t=num(b.querySelector("#gTot").value);if(t)b.querySelector("#gAct").value=act(t)};
     b.querySelector("#gTot").addEventListener("input",re);b.querySelector("#gMin").addEventListener("input",re);
     b.querySelector("#gGo").onclick=async()=>{
       const k=Math.round(num(b.querySelector("#gAct").value));if(!k){toast("Bitte die Kalorien eintragen");return}
-      const d=b.querySelector("#gDate").value||S.day,name=b.querySelector("#gName").value.trim()||"Garmin",min=Math.round(num(b.querySelector("#gMin").value))||0;
+      const d=b.querySelector("#gDate").value||S.day,name=b.querySelector("#gName").value.trim()||"Sport",min=Math.round(num(b.querySelector("#gMin").value))||0;
       const t=parseKey(d);const now=new Date();t.setHours(now.getHours(),now.getMinutes());
       const tot=Math.round(num(b.querySelector("#gTot").value))||k;
       try{await store.setEntry(S.me,`garmin-${d}-${min}-${tot}`,{kind:"sport",date:d,t:d===keyOf(now)?entryTime():t.getTime(),name,kcal:k,min,src:"garmin",kcalTotal:tot});
