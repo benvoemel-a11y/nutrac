@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Nutrac</title>
+<meta property="og:title" content="Einladung zu Nutrac">
+<meta property="og:description" content="Kalorien, Gewicht und Sport – gemeinsam tracken.">
+<meta property="og:image" content="https://benvoemel-a11y.github.io/nutrac/icons/og.png">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -234,6 +240,15 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .sbar{width:120px;height:3px;background:var(--track);border-radius:3px;overflow:hidden}
 .sbar i{display:block;width:40%;height:100%;background:var(--ink);border-radius:3px;animation:sbar 1s ease-in-out infinite alternate}
 @keyframes sbar{from{transform:translateX(-20%)}to{transform:translateX(170%)}}
+#invite{position:fixed;inset:0;z-index:40;background:#fff;color:#111;font-family:-apple-system,"SF Pro Display","Helvetica Neue",Arial,sans-serif;display:flex;flex-direction:column;align-items:center;text-align:center;padding:calc(env(safe-area-inset-top,0px) + 18vh) 28px calc(env(safe-area-inset-bottom,0px) + 28px);box-sizing:border-box}
+#invite[hidden]{display:none}
+.iv-ic{width:84px;height:84px;border-radius:20px;box-shadow:0 8px 24px rgba(0,0,0,.16)}
+#invite h1{font-size:30px;font-weight:700;letter-spacing:-.02em;margin:30px 0 0;line-height:1.15}
+#invite p{font-size:17px;color:#6e6e73;margin:12px 0 0;line-height:1.4}
+.iv-foot{margin-top:auto;width:100%;max-width:420px}
+.iv-btn{width:100%;background:#111;color:#fff;border-radius:999px;padding:17px;font-size:17px;font-weight:600}
+.iv-alt{margin-top:16px;color:#6e6e73;font-size:15px}
+.iv-btn:active,.iv-alt:active{opacity:.7}
 .frbtn{position:relative}
 .frbtn.badge::after{content:"";position:absolute;top:4px;right:4px;width:11px;height:11px;border-radius:50%;background:var(--alert);border:2px solid var(--bg)}
 .botfade{position:absolute;left:0;right:0;bottom:0;height:calc(28px + env(safe-area-inset-bottom,0px));background:linear-gradient(to bottom,var(--bg0),var(--bg));pointer-events:none;z-index:2}
@@ -399,6 +414,12 @@ button{background:none;border:0;padding:0;cursor:pointer}
 </head>
 <body>
 
+<div id="invite" hidden>
+  <img src="icons/icon-180.png" alt="" class="iv-ic">
+  <h1 id="ivTitle">Du wurdest eingeladen</h1>
+  <p id="ivSub">Tracke Kalorien und Gewicht – gemeinsam.</p>
+  <div class="iv-foot"><button class="iv-btn" id="ivYes">Annehmen</button><button class="iv-alt" id="ivHave">Ich habe schon ein Konto</button></div>
+</div>
 <div id="login" hidden>
   <div class="box">
     <span class="wordmark">Nutrac</span>
@@ -502,7 +523,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="28";
+const APP_VERSION="29";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -1286,11 +1307,26 @@ function openFriend(uid){
 }
 function addFriendSheet(){
   openSheet("Freund hinzufügen",`
+    <div class="card form"><div class="card-title"><h2>Per Link einladen</h2><span>SMS &amp; Co.</span></div>
+      <p class="hint" style="margin:0">Dein Freund tippt auf den Link, erstellt ein Konto – und ihr seid direkt befreundet. Jeder Link gilt 7 Tage für eine Person.</p>
+      <button class="btn" id="invShare">Einladungslink senden</button>
+      <button class="btn ghost" id="invCopy">Link kopieren</button>
+      <p class="hint num" id="invLink" style="margin:0;word-break:break-all;text-transform:none;letter-spacing:0"></p></div>
+    <div class="card form"><div class="card-title"><h2>Per E-Mail</h2><span>hat schon ein Konto</span></div>
     <label class="fld"><span>E-Mail deines Freundes</span><input class="in" type="email" inputmode="email" id="frMail" placeholder="angie@mail.com" autocomplete="off"></label>
-    <p class="hint" style="margin:0">Dein Freund muss sich vorher einmal bei Nutrac angemeldet haben. Er bekommt eine Anfrage auf Seite 2 und muss sie annehmen – erst dann seht ihr euch gegenseitig.</p>
+    <p class="hint" style="margin:0">Er bekommt eine Anfrage unter Freunde und muss sie annehmen – erst dann seht ihr euch gegenseitig.</p>
     <button class="btn" id="frGo">Anfrage senden</button>
-    <p class="hint" id="frStatus" aria-live="polite"></p>`,
-  b=>{setTimeout(()=>b.querySelector("#frMail").focus(),350);
+    <p class="hint" id="frStatus" aria-live="polite"></p></div>`,
+  b=>{let link=null;
+    const getLink=async()=>{if(link)return link;const {data,error}=await SB.rpc("create_invite");if(error)throw error;link=location.origin+location.pathname.replace(/[^/]*$/,"")+"?e="+data;b.querySelector("#invLink").textContent=link;return link};
+    const invErr=err=>{console.warn(err);toast(err&&/create_invite|function/i.test(String(err.message||err.code||""))?"Einladungs-Links sind noch nicht eingerichtet":"Link konnte nicht erstellt werden")};
+    b.querySelector("#invShare").onclick=async e=>{const btn=e.currentTarget;btn.disabled=true;
+      try{const u=await getLink();const me=(S.users[S.me]||{}).name;const text=`${me&&me!=="Ich"?me+" lädt dich zu Nutrac ein":"Komm zu Nutrac"} – Kalorien, Gewicht und Sport gemeinsam tracken:`;
+        if(navigator.share){try{await navigator.share({title:"Einladung zu Nutrac",text,url:u})}catch(x){if(x&&x.name!=="AbortError")throw x}}
+        else{await navigator.clipboard.writeText(text+" "+u);toast("Link kopiert")}}
+      catch(err){invErr(err)}finally{btn.disabled=false}};
+    b.querySelector("#invCopy").onclick=async e=>{const btn=e.currentTarget;btn.disabled=true;
+      try{const u=await getLink();try{await navigator.clipboard.writeText(u);toast("Link kopiert")}catch(_){toast("Link unten antippen und kopieren")}}catch(err){invErr(err)}finally{btn.disabled=false}};
     b.querySelector("#frGo").onclick=async e=>{
       const m=b.querySelector("#frMail").value.trim().toLowerCase(),st=b.querySelector("#frStatus");
       if(!/^\S+@\S+\.\S+$/.test(m)){st.textContent="Bitte eine gültige E-Mail eingeben.";return}
@@ -2170,6 +2206,35 @@ const keepStore=(function(){
     removeItem(k){try{localStorage.removeItem(k)}catch(e){}try{clearC(k)}catch(e){}}
   };
 })();
+
+/* ---------- Einladung per Link ---------- */
+const INV_KEY="nutrac-invite";
+let INV=null;try{const q=new URLSearchParams(location.search).get("e");if(q&&/^[A-Za-z0-9]{6}$/.test(q)){localStorage.setItem(INV_KEY,q.toUpperCase());history.replaceState(null,"",location.pathname+location.hash)}INV=localStorage.getItem(INV_KEY)}catch(e){}
+const clearInv=()=>{INV=null;try{localStorage.removeItem(INV_KEY)}catch(e){}};
+async function showInvite(){
+  const V=$("#invite");V.hidden=false;let who=null;
+  try{const {data}=await SB.rpc("invite_info",{code:INV});if(data){who=data.name;if(!data.valid){$("#ivTitle").textContent="Diese Einladung ist abgelaufen";$("#ivSub").textContent=`Frag ${who||"deinen Freund"} nach einem neuen Link – oder schau dir Nutrac trotzdem an.`;$("#ivYes").textContent="Zu Nutrac";clearInv();who=null}}}catch(e){console.warn(e)}
+  if(who){$("#ivTitle").textContent=`${who} hat dich eingeladen`;$("#ivSub").textContent=`Tracke Kalorien und Gewicht – gemeinsam mit ${who}.`}
+  const go=mode=>{V.hidden=true;showLogin();if(INV)$("#lgIntro").textContent=`Einladung von ${who||"deinem Freund"} – nach der Anmeldung seid ihr direkt befreundet.`;if(mode==="up")$("#lgSwitch").click()};
+  $("#ivYes").onclick=()=>go("up");$("#ivHave").onclick=()=>go("in");
+}
+async function acceptInvite(){
+  if(!INV)return;const code=INV;
+  try{const {data,error}=await SB.rpc("accept_invite",{code});if(error)throw error;
+    if(data==="auth")return;
+    clearInv();
+    if(data==="ok"){toast("Ihr seid jetzt befreundet");store.refresh()}
+    else if(data==="already")toast("Ihr seid schon befreundet");
+    else if(data==="expired")toast("Die Einladung ist abgelaufen – frag nach einem neuen Link");
+    else if(data==="not_found")toast("Einladung nicht gefunden");
+    if(!isStandalone()&&/iPhone|iPad/.test(navigator.userAgent))setTimeout(homeHint,900);
+  }catch(e){console.warn(e)}
+}
+function homeHint(){
+  openSheet("Nutrac aufs iPhone",`<div class="card form"><p style="margin:0;font-size:15px;line-height:1.5">So hast du Nutrac wie eine App auf dem Home-Bildschirm:</p>
+  <p style="margin:0;font-size:15px;line-height:1.7">1. Unten in Safari auf <b>Teilen</b> tippen (Quadrat mit Pfeil)<br>2. <b>Zum Home-Bildschirm</b> wählen<br>3. <b>Hinzufügen</b> – fertig</p>
+  <p class="hint" style="margin:0">Danach Nutrac immer über das Icon öffnen.</p></div><button class="btn" id="hhOk">Verstanden</button>`,b=>{b.querySelector("#hhOk").onclick=closeSheet});
+}
 (async function boot(){
   const C=window.NUTRAC_CONFIG||{};
   if(!window.supabase||!C.SUPABASE_URL||/DEIN|YOUR/.test(C.SUPABASE_URL)){showLogin("Nutrac ist noch nicht eingerichtet: Trag in config.js deine Supabase-Adresse und den Schlüssel ein (Anleitung, Schritt 2).");$("#lgGo").disabled=true;return}
@@ -2177,11 +2242,12 @@ const keepStore=(function(){
   SB=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:"nutrac-auth",storage:keepStore}});
   let session=null;try{session=(await SB.auth.getSession()).data.session}catch(e){console.warn(e)}
   if(!session){try{const raw=keepStore.getItem("nutrac-auth");const j=raw&&JSON.parse(raw);if(j&&j.user&&j.refresh_token){const r=await SB.auth.setSession({access_token:j.access_token,refresh_token:j.refresh_token});session=r.data.session||null;if(!session&&navigator.onLine===false)session=j}}catch(e){console.warn(e)}}
-  if(!session){showLogin();return}
+  if(!session){if(INV)showInvite();else showLogin();return}
   SB.auth.onAuthStateChange((ev)=>{if(ev==="SIGNED_OUT")location.reload()});
   S.me=session.user.id;S.email=session.user.email;S.view=S.me;
   store.init(SB);
   render();readyDone();
+  acceptInvite();
   store.meals(S.me,list=>{S.meals=list;if($("#sheet").classList.contains("on")&&(sheetCur===openAdd||sheetCur===savedSheet)){const f=sheetCur;navBack=true;try{f()}finally{navBack=false}}});
   store.routines(S.me,list=>{S.routines=list;renderPlan()});
   let histFrom=null,histUn=null;
