@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Nutrac</title>
 <meta property="og:title" content="Einladung zu Nutrac">
-<meta property="og:description" content="Kalorien, Gewicht und Sport – gemeinsam tracken.">
+<meta property="og:description" content="Gemeinsam tracken.">
 <meta property="og:image" content="https://benvoemel-a11y.github.io/nutrac/icons/og.png">
 <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
 <meta property="og:type" content="website">
@@ -523,7 +523,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="29";
+const APP_VERSION="30";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -1321,7 +1321,7 @@ function addFriendSheet(){
     const getLink=async()=>{if(link)return link;const {data,error}=await SB.rpc("create_invite");if(error)throw error;link=location.origin+location.pathname.replace(/[^/]*$/,"")+"?e="+data;b.querySelector("#invLink").textContent=link;return link};
     const invErr=err=>{console.warn(err);toast(err&&/create_invite|function/i.test(String(err.message||err.code||""))?"Einladungs-Links sind noch nicht eingerichtet":"Link konnte nicht erstellt werden")};
     b.querySelector("#invShare").onclick=async e=>{const btn=e.currentTarget;btn.disabled=true;
-      try{const u=await getLink();const me=(S.users[S.me]||{}).name;const text=`${me&&me!=="Ich"?me+" lädt dich zu Nutrac ein":"Komm zu Nutrac"} – Kalorien, Gewicht und Sport gemeinsam tracken:`;
+      try{const u=await getLink();const me=(S.users[S.me]||{}).name;const text=`${me&&me!=="Ich"?me+" lädt dich zu Nutrac ein":"Du bist zu Nutrac eingeladen"} – lass uns zusammen tracken 💪`;
         if(navigator.share){try{await navigator.share({title:"Einladung zu Nutrac",text,url:u})}catch(x){if(x&&x.name!=="AbortError")throw x}}
         else{await navigator.clipboard.writeText(text+" "+u);toast("Link kopiert")}}
       catch(err){invErr(err)}finally{btn.disabled=false}};
