@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Nutrac">
 <meta name="theme-color" content="#8b8b8b">
+<script>try{if(localStorage.getItem("nutrac-theme")==="dunkel"){document.documentElement.dataset.theme="dunkel";document.querySelector('meta[name=theme-color]').content="#131313"}}catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -36,6 +37,22 @@ img{max-width:100%}
   --mono:"IBM Plex Mono","SF Mono",ui-monospace,Menlo,Consolas,monospace;
   --sans:"IBM Plex Sans",-apple-system,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
   color-scheme:light;
+  --bg0:rgba(139,139,139,0);
+}
+:root[data-theme="dunkel"]{
+  --bg:#131313;
+  --card:#1d1d1d;
+  --card-2:#262626;
+  --line:#323232;
+  --track:#2e2e2e;
+  --fg:#ececec;
+  --muted:#a6a6a6;
+  --faint:#787878;
+  --knob:#131313;
+  --ink:#ececec;
+  --alert:#e5524a;
+  --bg0:rgba(19,19,19,0);
+  color-scheme:dark;
 }
 html,body{height:100%;overflow:hidden}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
@@ -213,13 +230,18 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .sheet-body>*:nth-child(2){animation-delay:.03s}.sheet-body>*:nth-child(3){animation-delay:.06s}.sheet-body>*:nth-child(4){animation-delay:.09s}.sheet-body>*:nth-child(n+5){animation-delay:.12s}
 @keyframes sheetIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .toast{transition:opacity .25s,transform .35s cubic-bezier(.2,.9,.25,1)}
+.nrow{display:grid;grid-template-columns:108px 1fr 36px;gap:8px;align-items:center}
+.nrow .in{padding-inline:10px;font-size:15px}
+.nrow .x{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--muted);font-size:18px;line-height:1}
+.nbk{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.nbk .in{width:110px;padding-inline:10px;font-size:15px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chips .chip{padding:8px 12px;font-size:13px}
 .savedbox .svhead{display:grid;gap:10px;padding:14px 18px 8px}
 .savedbox .row .t{min-width:38px;font-size:14px;color:var(--fg)}
 .newrow .t{font-size:20px!important;color:var(--muted)!important;text-align:center}
 .addfoot{display:flex;justify-content:center;padding-top:2px}
-.dots::before{content:"";position:absolute;left:0;right:0;top:-28px;height:28px;background:linear-gradient(to bottom,rgba(139,139,139,0),var(--bg));pointer-events:none}
+.dots::before{content:"";position:absolute;left:0;right:0;top:-28px;height:28px;background:linear-gradient(to bottom,var(--bg0),var(--bg));pointer-events:none}
 .linkdanger{color:var(--alert);font-size:14px;text-align:center;padding:6px}
 .macro b{font-weight:400;font-size:14px}
 .macro .bar{height:6px}
@@ -301,7 +323,7 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .sheet-top h3{font-family:var(--mono);font-weight:500;font-size:19px;margin:0}
 .x{width:46px;height:46px;border-radius:50%;background:var(--knob);border:1.5px solid var(--line);display:grid;place-items:center;color:var(--ink)}
 .x svg{width:20px;height:20px}
-.sheet-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding:14px max(20px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px}
+.sheet-body{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding:14px max(20px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px}
 .opt{display:flex;align-items:center;gap:14px;border:1.5px solid var(--muted);border-radius:16px;padding:14px 16px;text-align:left;width:100%;box-sizing:border-box;cursor:pointer;position:relative}
 .opt svg{width:24px;height:24px;flex:none}
 .opt b{display:block;font-weight:500;font-size:16px}
@@ -460,9 +482,12 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="18";
+const APP_VERSION="19";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#d93f37"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
-function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];document.documentElement.style.setProperty("--wm",c[2])}
+function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]))}
+const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
+function applyTheme(t){t=t==="dunkel"?"dunkel":"grau";const r=document.documentElement;if(t==="dunkel")r.dataset.theme="dunkel";else delete r.dataset.theme;
+  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==="dunkel"?"#131313":"#8b8b8b";try{localStorage.setItem("nutrac-theme",t)}catch(e){}}
 const ADD_ITEMS=[["saved","Gespeicherte Lebensmittel"],["barcode","Barcode scannen"],["manual","Manuell eintragen"],["sport","Sport"],["weight","Gewicht"]];
 function addOrderOf(p){
   p=p||{};
@@ -621,7 +646,7 @@ function renderToday(){
     $("#macros").parentElement.hidden=true;
   }
 
-  renderPlan();renderGoal();applyLayout();renderBackup();applyWordmark((S.users[S.me]||{}).wmColor);
+  renderPlan();renderGoal();applyLayout();renderBackup();if(S.users[S.me])applyTheme(S.users[S.me].theme);applyWordmark((S.users[S.me]||{}).wmColor);
   $("#addRow").hidden=!(isMine()&&S.canWrite&&S.me);
   const all=[...foods,...sports.sort((a,b)=>(a.t||0)-(b.t||0))];
   const planOff=p&&layoutOf(p).find(x=>x.id==="plan").on===false;
@@ -868,7 +893,9 @@ const PROFILE_HTML=`
     </div>
   </div>
   <div class="card form">
-    <div class="card-title"><h2>Farbe Schriftzug</h2><span>Nutrac oben</span></div>
+    <div class="card-title"><h2>Design</h2><span>Farben</span></div>
+    <div class="seg" id="pTheme">${THEMES.map(([k,n])=>`<button data-v="${k}">${n}</button>`).join("")}</div>
+    <span class="hint" style="margin:4px 0 -4px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em">Schriftzug Nutrac</span>
     <div class="swatches" id="pWm">${WM_COLORS.map(([k,n,h])=>`<button data-wm="${k}">${n}</button>`).join("")}</div>
   </div>
   <div class="card form">
@@ -891,6 +918,16 @@ const PROFILE_HTML=`
   </div>
   <button class="btn" id="pSave">Speichern</button>
   <p class="hint" id="pStatus" aria-live="polite"></p>
+  <div class="card form" id="notifyCard">
+    <div class="card-title"><h2>Mitteilungen</h2><span id="ntState"></span></div>
+    <p class="hint" id="ntHint" style="margin:0"></p>
+    <button class="btn ghost" id="ntOn">Mitteilungen einschalten</button>
+    <div class="fld"><span>Erinnerungen – täglich</span>
+      <div id="ntList" style="display:grid;gap:10px"></div>
+      <button class="chip" id="ntAdd" style="justify-self:start;margin-top:4px">+ Erinnerung</button></div>
+    <button class="check" id="ntFr"><i></i>Freundschaftsanfragen</button>
+    <div class="nbk"><button class="check" id="ntBk"><i></i>Sonntags ans Backup erinnern</button><input class="in" type="time" id="ntBkT"></div>
+  </div>
   <div class="card form">
     <div class="card-title"><h2>Wochenbericht</h2><span>PDF</span></div>
     <div class="seg" id="rpWeek"><button data-v="0" aria-pressed="true">Diese Woche</button><button data-v="1" aria-pressed="false">Letzte Woche</button></div>
@@ -916,7 +953,7 @@ const PROFILE_HTML=`
 const de=v=>v===""||v==null?"":String(v).replace(".",",");
 function fillProfile(){
   const p=S.users[S.me]||{};
-  draft={name:p.name||"",sex:p.sex||"m",age:p.age||"",height:p.height||"",weight:p.weight||latestWeight(S.view===S.me?S.weights:[])||"",act:String(p.act||"1.375"),actMode:p.actMode||"level",stepsDefault:p.stepsDefault||"",goal:p.goal||"lose",delta:p.delta??500,protKg:p.protKg||1.8,fatPct:p.fatPct||25,carbG:p.carbG||"",share:shareOf(p),wmColor:p.wmColor||"schwarz",unit:p.unit||"kg",layout:layoutOf(p),addOrder:addOrderOf(p),goalKg:p.goalKg||""};
+  draft={name:p.name||"",sex:p.sex||"m",age:p.age||"",height:p.height||"",weight:latestWeight(S.view===S.me?S.weights:[])||p.weight||"",act:String(p.act||"1.375"),actMode:p.actMode||"level",stepsDefault:p.stepsDefault||"",goal:p.goal||"lose",delta:p.delta??500,protKg:p.protKg||1.8,fatPct:p.fatPct||25,carbG:p.carbG||"",share:shareOf(p),wmColor:p.wmColor||"schwarz",theme:p.theme||"grau",unit:p.unit||"kg",layout:layoutOf(p),addOrder:addOrderOf(p),goalKg:p.goalKg||""};
   draft.startKg=p.startKg||"";draft.startDate=p.startDate||keyOf(new Date());
   $("#pGoalKg").value=draft.goalKg?de(Math.round(toU(draft.goalKg,draft.unit)*10)/10):"";
   $("#pStartKg").value=draft.startKg?de(Math.round(toU(draft.startKg,draft.unit)*10)/10):"";
@@ -947,6 +984,7 @@ function renderProfileBits(){
   $("#pAddOrder").innerHTML=draft.addOrder.map((x,i)=>{const lab=ADD_ITEMS.find(a=>a[0]===x.id)[1];
     return `<div class="lrow"><button class="check" data-lt="${x.id}" aria-pressed="${x.on}"><i></i>${lab}</button><button class="grip" data-gi="${i}" aria-label="${lab} verschieben – ziehen oder Pfeiltasten">${GRIP}</button></div>`}).join("");
   document.querySelectorAll("#pShare [data-k]").forEach(x=>x.setAttribute("aria-pressed",String(!!draft.share[x.dataset.k])));
+  setSeg("#pTheme",draft.theme);
   document.querySelectorAll("#pWm [data-wm]").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.wm===draft.wmColor)));
   setSeg("#pActMode",draft.actMode);$("#actLvlFld").hidden=draft.actMode==="steps";$("#stepsFld").hidden=draft.actMode!=="steps";
   $("#deltaFld").hidden=draft.goal==="keep";$("#goalKgFld").hidden=draft.goal==="keep";$("#pGoalKgLab").textContent="Ziel "+draft.unit;$("#pStartKgLab").textContent="Start "+draft.unit;
@@ -1004,8 +1042,9 @@ function sortable(PL,getList,canToggle,rerender){
 function openSettings(){
   openSheet("Einstellungen",PROFILE_HTML,b=>{
     fillProfile();
-    [["#pSex","sex"],["#pAct","act"],["#pActMode","actMode"],["#pGoal","goal"],["#pUnit","unit"]].forEach(([sel,k])=>b.querySelector(sel).addEventListener("click",e=>{
+    [["#pSex","sex"],["#pAct","act"],["#pActMode","actMode"],["#pGoal","goal"],["#pUnit","unit"],["#pTheme","theme"]].forEach(([sel,k])=>b.querySelector(sel).addEventListener("click",e=>{
       const x=e.target.closest("button");if(!x)return;readDraft();draft[k]=x.dataset.v;
+      if(k==="theme"){applyTheme(draft.theme);applyWordmark(draft.wmColor)}
       if(k==="unit"){$("#pKg").value=draft.weight?de(Math.round(toU(draft.weight,draft.unit)*10)/10):"";$("#pGoalKg").value=draft.goalKg?de(Math.round(toU(draft.goalKg,draft.unit)*10)/10):"";$("#pStartKg").value=draft.startKg?de(Math.round(toU(draft.startKg,draft.unit)*10)/10):""}
       renderProfileBits()}));
     sortable(b.querySelector("#pLayout"),()=>draft.layout,x=>x.id!=="entries");
@@ -1023,8 +1062,64 @@ function openSettings(){
     b.querySelector("#pShare").onclick=e=>{const x=e.target.closest("[data-k]");if(!x)return;draft.share[x.dataset.k]=!draft.share[x.dataset.k];renderProfileBits()};
     b.querySelector("#deltaReset").onclick=()=>{$("#pDelta").value="500";readDraft();renderProfileBits()};
     b.querySelector("#pSave").onclick=saveProfile;
+    notifyMount(b);
     if(!S.canWrite) say("Du kannst hier nur lesen. Lass dich als Editor einladen, um eigene Daten einzutragen.",true);
   });
+}
+/* ---------- Mitteilungen ---------- */
+const VAPID_PUB="BHPjUxqV43w27uoafzmAF8qeh_7blis-VD0VudF0Is2K0UhsVhQCrLEVZngqnyxXdjRFYRheyJMf0l1AoOiZhGY";
+const notifyOf=p=>({reminders:[],friends:true,backup:true,backupTime:"18:00",...((p&&p.notify)||{})});
+const myTz=()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||"Europe/Berlin"}catch(e){return"Europe/Berlin"}};
+const isStandalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const pushOk=()=>"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
+const b64u=s=>{const b=atob((s+"=".repeat((4-s.length%4)%4)).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(b,c=>c.charCodeAt(0))};
+async function savePushSub(sub){const j=sub.toJSON();const {error}=await SB.rpc("save_push_sub",{endpoint:j.endpoint,sub:j});if(error)throw error}
+async function currentSub(){if(!pushOk()||Notification.permission!=="granted")return null;const reg=await navigator.serviceWorker.ready;return reg.pushManager.getSubscription()}
+async function enablePush(){
+  const perm=await Notification.requestPermission();if(perm!=="granted")throw new Error("denied");
+  const reg=await navigator.serviceWorker.ready;
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID_PUB)});
+  await savePushSub(sub);
+}
+async function syncPush(){try{const sub=await currentSub();if(sub)await savePushSub(sub)}catch(e){console.warn(e)}}
+let ntTimer=null;
+function saveNotify(n){
+  const p=S.users[S.me]||{};const np={...p,notify:n,tz:myTz()};S.users={...S.users,[S.me]:np};
+  clearTimeout(ntTimer);ntTimer=setTimeout(()=>store.saveProfile(S.me,{...(S.users[S.me]||np)}).catch(writeErr),500);
+}
+function notifyMount(b){
+  const n=notifyOf(S.users[S.me]);
+  const state=async()=>{
+    const st=b.querySelector("#ntState"),hint=b.querySelector("#ntHint"),on=b.querySelector("#ntOn");
+    if(!pushOk()){st.textContent="aus";on.hidden=true;hint.innerHTML=isStandalone()?"Dieses Gerät unterstützt keine Mitteilungen (ab iOS 16.4).":"Mitteilungen gehen nur in der App vom <b>Home-Bildschirm</b>, nicht im Safari-Tab.";return}
+    if(Notification.permission==="denied"){st.textContent="blockiert";on.hidden=true;hint.innerHTML="Du hast Mitteilungen abgelehnt. Einschalten: <b>Einstellungen → Mitteilungen → Nutrac</b>.";return}
+    const sub=await currentSub().catch(()=>null);
+    if(sub){st.textContent="an";on.textContent="Test-Mitteilung senden";on.hidden=false;hint.textContent="Dieses iPhone bekommt Nutrac-Mitteilungen."}
+    else{st.textContent="aus";on.textContent="Mitteilungen einschalten";on.hidden=false;hint.textContent="Einmal einschalten und bei der Frage „Erlauben“ tippen."}
+  };
+  const draw=()=>{
+    b.querySelector("#ntList").innerHTML=n.reminders.length?n.reminders.map((r,i)=>`<div class="nrow" data-i="${i}"><input class="in" type="time" value="${esc(r.t)}" data-f="t"><input class="in" placeholder="Text (optional)" maxlength="40" value="${esc(r.text||"")}" data-f="text" autocomplete="off"><button class="x" data-del="${i}" aria-label="Erinnerung löschen">×</button></div>`).join(""):`<p class="hint" style="margin:0">Noch keine Erinnerung. Mit „+ Erinnerung“ eine Uhrzeit festlegen, z. B. 12:30 und 20:00.</p>`;
+    b.querySelector("#ntFr").setAttribute("aria-pressed",String(n.friends!==false));
+    b.querySelector("#ntBk").setAttribute("aria-pressed",String(n.backup!==false));
+    const bt=b.querySelector("#ntBkT");bt.value=n.backupTime||"18:00";bt.disabled=n.backup===false;
+  };
+  draw();state();
+  b.querySelector("#ntOn").onclick=async e=>{
+    const btn=e.currentTarget;btn.disabled=true;
+    try{
+      const had=await currentSub().catch(()=>null);
+      if(had){const {data:{session}}=await SB.auth.getSession();const r=await fetch(window.NUTRAC_CONFIG.SUPABASE_URL+"/functions/v1/push",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session.access_token,apikey:window.NUTRAC_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({type:"test"})});const j=await r.json().catch(()=>({}));toast(j.sent?"Test gesendet – kommt gleich":"Test hat nicht geklappt")}
+      else{await enablePush();saveNotify(n);toast("Mitteilungen sind an")}
+    }catch(err){console.warn(err);toast(err&&err.message==="denied"?"Nicht erlaubt – in den iPhone-Einstellungen änderbar":"Einschalten hat nicht geklappt")}
+    finally{btn.disabled=false;state()}
+  };
+  b.querySelector("#ntAdd").onclick=()=>{n.reminders.push({t:n.reminders.length?"20:00":"12:30",text:""});draw();saveNotify(n);const ins=b.querySelectorAll('#ntList [data-f="t"]');ins[ins.length-1]&&ins[ins.length-1].focus()};
+  b.querySelector("#ntList").addEventListener("click",e=>{const d=e.target.closest("[data-del]");if(!d)return;n.reminders.splice(+d.dataset.del,1);draw();saveNotify(n)});
+  b.querySelector("#ntList").addEventListener("change",e=>{const row=e.target.closest(".nrow");if(!row)return;const r=n.reminders[+row.dataset.i];if(!r)return;r[e.target.dataset.f]=e.target.dataset.f==="t"?(e.target.value||r.t):e.target.value.trim();n.reminders.sort((a,c)=>a.t.localeCompare(c.t));draw();saveNotify(n)});
+  b.querySelector("#ntFr").onclick=()=>{n.friends=n.friends===false;draw();saveNotify(n)};
+  b.querySelector("#ntBk").onclick=()=>{n.backup=n.backup===false;draw();saveNotify(n)};
+  b.querySelector("#ntBkT").onchange=e=>{if(e.target.value){n.backupTime=e.target.value;saveNotify(n)}};
 }
 function say(m,bad){const st=$("#pStatus");if(!st)return;st.textContent=m;st.style.color=bad?"var(--alert)":"var(--muted)"}
 async function saveProfile(){
@@ -1037,7 +1132,7 @@ async function saveProfile(){
   const btn=$("#pSave");btn.disabled=true;say("Speichert …");
   await ready;
   const p={...(S.users[S.me]||{}),name:draft.name||"Ich",sex:draft.sex,age:draft.age,height:draft.height,weight:draft.weight,act:num(draft.act),actMode:draft.actMode,stepsDefault:draft.stepsDefault||0,goal:draft.goal,delta:draft.goal==="keep"?(S.users[S.me]?.delta??500):draft.delta,
-    protKg:Math.min(3.5,Math.max(.8,draft.protKg)),fatPct:Math.min(45,Math.max(15,draft.fatPct)),carbG:draft.carbG||0,showMacros:draft.layout.find(x=>x.id==="macros").on,layout:draft.layout.map(x=>({id:x.id,on:x.on})),addOrder:draft.addOrder.map(x=>({id:x.id,on:x.on})),unit:draft.unit,wmColor:draft.wmColor,goalKg:draft.goal==="keep"?(S.users[S.me]?.goalKg||0):(draft.goalKg||0),
+    protKg:Math.min(3.5,Math.max(.8,draft.protKg)),fatPct:Math.min(45,Math.max(15,draft.fatPct)),carbG:draft.carbG||0,showMacros:draft.layout.find(x=>x.id==="macros").on,layout:draft.layout.map(x=>({id:x.id,on:x.on})),addOrder:draft.addOrder.map(x=>({id:x.id,on:x.on})),unit:draft.unit,wmColor:draft.wmColor,theme:draft.theme,goalKg:draft.goal==="keep"?(S.users[S.me]?.goalKg||0):(draft.goalKg||0),
     startKg:draft.goal==="keep"?(S.users[S.me]?.startKg||0):(draft.goalKg?(draft.startKg||draft.weight):0),startDate:draft.startDate,share:{...draft.share},updated:Date.now()};
   try{
     await store.saveProfile(S.me,p);
@@ -1289,7 +1384,7 @@ function goBack(){
   navBack=true;try{fn()}finally{navBack=false}
 }
 function done(){sheetStack.length?goBack():closeSheet()}
-function closeSheet(){sheetStack=[];sheetCur=null;applyWordmark((S.users[S.me]||{}).wmColor);$("#sheet").classList.remove("on");$("#scrim").classList.remove("on");if(typeof sheetCleanup==="function")sheetCleanup();sheetCleanup=null}
+function closeSheet(){sheetStack=[];sheetCur=null;if(S.users[S.me])applyTheme(S.users[S.me].theme);applyWordmark((S.users[S.me]||{}).wmColor);$("#sheet").classList.remove("on");$("#scrim").classList.remove("on");if(typeof sheetCleanup==="function")sheetCleanup();sheetCleanup=null}
 $("#sheetX").onclick=closeSheet;$("#sheetBack").onclick=goBack;$("#scrim").onclick=closeSheet;
 
 const ICON={
@@ -1973,14 +2068,16 @@ var swipeUsed=0;
   },{passive:true});
   sh.addEventListener("touchmove",e=>{
     if(!g)return;const t=e.touches[0];g.dx=t.clientX-g.x0;g.dy=t.clientY-g.y0;
-    if(!g.axis&&(Math.abs(g.dx)>8||Math.abs(g.dy)>8))g.axis=Math.abs(g.dx)>Math.abs(g.dy)?"x":"y";
-    if(g.axis==="y"&&g.top&&g.dy>0){sh.classList.add("drag");sh.style.transform=`translateY(${g.dy}px)`}
-    if(g.axis==="x"&&g.edge&&g.dx>0){$("#sheetBody").style.transform=`translateX(${g.dx*.6}px)`}
-  },{passive:true});
+    if(!g.axis&&(Math.abs(g.dx)>10||Math.abs(g.dy)>10)){g.axis=Math.abs(g.dx)>Math.abs(g.dy)*1.2?"x":"y";
+      if(g.axis==="y"&&g.dy<0)g.top=false; // nach oben wischen = normal scrollen
+      if(g.axis==="x"&&!g.edge){g=null;return}}
+    if(g.axis==="y"&&g.top){e.cancelable&&e.preventDefault();const d=Math.max(0,g.dy-10);sh.classList.add("drag");sh.style.transform=`translateY(${d}px)`}
+    else if(g.axis==="x"&&g.edge){e.cancelable&&e.preventDefault();$("#sheetBody").style.transform=`translateX(${Math.max(0,g.dx)*.6}px)`}
+  },{passive:false});
   sh.addEventListener("touchend",()=>{
     if(!g)return;const v=g.dy/Math.max(1,Date.now()-g.t0);
     sh.classList.remove("drag");sh.style.transform="";$("#sheetBody").style.transform="";
-    if(g.axis==="y"&&g.top&&(g.dy>120||(g.dy>40&&v>.6)))closeSheet();
+    if(g.axis==="y"&&g.top&&(g.dy>130||(g.dy>40&&v>.6)))closeSheet();
     else if(g.axis==="x"&&g.edge&&g.dx>80)goBack();
     g=null;
   });
@@ -2052,9 +2149,14 @@ const keepStore=(function(){
     histUn=store.foodSince(S.me,from,list=>{S.hist=list;renderGoal()});
   };
   subHist();
-  store.users(o=>{S.users=o;subHist();S.view=S.me;syncFriends();render()});
+  let tzDone=false;
+  store.users(o=>{S.users=o;subHist();S.view=S.me;syncFriends();render();
+    const p=o[S.me];if(!tzDone&&p){tzDone=true;if(p.tz!==myTz())store.saveProfile(S.me,{...p,tz:myTz()}).catch(()=>{})}});
   store.requests(list=>{S.requests=list;renderFriends()});
   resubscribe();
+  syncPush();
+  if(location.hash){const h=location.hash;history.replaceState(null,"",location.pathname);setTimeout(()=>{if(h==="#friends")go(1);else if(h==="#backup")openSettings()},300)}
+  if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("message",e=>{const u=e.data&&e.data.nav;if(!u)return;if(/#friends/.test(u))go(1);else if(/#backup/.test(u))openSettings()});
   if("serviceWorker" in navigator&&location.protocol==="https:"){
     navigator.serviceWorker.register("sw.js").then(reg=>{
       const chk=()=>reg.update().catch(()=>{});
