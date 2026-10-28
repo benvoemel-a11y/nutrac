@@ -490,7 +490,7 @@ button{background:none;border:0;padding:0;cursor:pointer}
           <div class="blk" data-block="kcal">
           <div class="progress"><div class="bar" id="kcalBar"><i></i></div><div class="pct" id="kcalPct">0 %</div></div>
 
-          <div class="big">
+          <div class="big" id="bigKcal" role="button" tabindex="0" aria-label="Tagesziel anzeigen">
             <div><div class="lab">gegessen</div><div class="val" id="eaten">0</div><div class="unit">kcal</div></div>
             <div><div class="lab" id="openLab">offen</div><div class="val" id="open">–</div><div class="unit">kcal</div></div>
           </div>
@@ -559,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="43";
+const APP_VERSION="44";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -685,6 +685,16 @@ function renderWho(el){
   el.innerHTML=ids.map(id=>`<button data-u="${esc(id)}" aria-pressed="${id===S.view}">${esc(S.users[id].name||"Ohne Namen")}${id===S.me?" · ich":""}</button>`).join("");
 }
 
+function goalSheet(){
+  const g=S.goalInfo;if(!g)return;const SP=g.SP;
+  openSheet("Tagesziel",`<div class="card calc">
+    <div><span>Grundziel (${g.goal==="lose"?"Abnehmen":g.goal==="gain"?"Zunehmen":"Halten"})</span><span class="num">${fmt(g.target)} kcal</span></div>
+    ${g.burned?`<div><span>Sport</span><span class="num">+ ${fmt(g.burned)} kcal</span></div>`:""}
+    ${SP.on?`<div><span>${SP.def?"Ø ":""}${fmt(SP.steps)} Schritte</span><span class="num">+ ${fmt(SP.k)} kcal</span></div>`:""}
+    <div class="total"><span>Heute gesamt</span><span class="num">${fmt(g.total)} kcal</span></div>
+    <div><span>Gegessen</span><span class="num">${fmt(g.eaten)} kcal</span></div>
+  </div>${SP.on&&isMine()&&S.canWrite?`<button class="btn ghost" id="gsSteps">Schritte eintragen</button>`:""}`,b=>{const x=b.querySelector("#gsSteps");if(x)x.onclick=stepsForm});
+}
 function renderToday(){
   const d=parseKey(S.day),today=keyOf(new Date());
   const lbl=d.toLocaleDateString("de-DE",{weekday:"long",day:"numeric",month:"long"});
@@ -710,6 +720,7 @@ function renderToday(){
     $("#kcalBar").firstElementChild.style.width=Math.min(100,pct)+"%";
     $("#kcalBar").classList.toggle("over",open<0);
     $("#kcalPct").textContent=fmt(pct)+" %";
+    $("#subline").hidden=true;S.goalInfo={target:pl.target,burned,SP,goal:p.goal,total:goal,eaten};
     $("#subline").innerHTML=`<span>Ziel ${fmt(pl.target)}</span>${burned?`<span>· Sport + ${fmt(burned)}</span>`:""}${SP.on?`<button class="lnk" id="stepsLink" style="font:inherit;color:inherit">· ${SP.def?"Ø ":""}${fmt(SP.steps)} Schritte + ${fmt(SP.k)}</button>`:""}<span>· ${p.goal==="lose"?"Abnehmen":p.goal==="gain"?"Zunehmen":"Halten"}</span>`;
     const carbs=pl.carbs+Math.round((burned+SP.k)/4);
     const C0=263.9;
@@ -720,6 +731,7 @@ function renderToday(){
   }else{
     $("#open").textContent="–";$("#open").classList.remove("over");$("#openLab").textContent="offen";
     $("#kcalBar").firstElementChild.style.width="0";$("#kcalPct").textContent="0 %";
+    $("#subline").hidden=false;S.goalInfo=null;
     $("#subline").innerHTML=isMine()?`<span>Noch kein Tagesziel – leg dein Profil an</span>`:`<span>Profil unvollständig</span>`;
     $("#macros").parentElement.hidden=true;
   }
@@ -1466,6 +1478,7 @@ document.addEventListener("click",e=>{
   if(acc||dec){const b=acc||dec;b.disabled=true;store.answerRequest((acc||dec).dataset[acc?"acc":"dec"],!!acc).then(r=>toast(acc?"Ihr seid jetzt befreundet":"Anfrage abgelehnt")).catch(err=>{b.disabled=false;writeErr(err)});return}
   if(can){can.disabled=true;store.cancelRequest(can.dataset.can).then(()=>toast("Anfrage zurückgezogen")).catch(err=>{can.disabled=false;writeErr(err)});return}
   if(e.target.closest("#goalCard")){toggleGoal();return}
+  if(e.target.closest("#bigKcal")&&S.goalInfo){goalSheet();return}
   if(e.target.closest("#stepsLink")||e.target.closest("[data-steps]")){if(isMine()&&S.canWrite)stepsForm();return}
   const rm=e.target.closest("#rtMode [data-m]");if(rm){setRoutineMode(rm.dataset.m);return}
   const rt=e.target.closest("[data-rt]");if(rt){toggleRoutine(rt.dataset.rt);return}
