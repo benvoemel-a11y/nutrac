@@ -559,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="46";
+const APP_VERSION="47";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -779,11 +779,17 @@ function goalCalc(p,ws,hist){
   const week=mk<=tk?sumRange(mk,tk):{sum:0,n:0};
   const todayDef=dayDef(tk);
   const total=Math.round(Math.abs(startKg-goalKg)*KCAL_PER_KG);
-  const remaining=Math.max(0,total-since.sum);
-  const pct=total>0?Math.max(0,Math.min(100,since.sum/total*100)):100;
+  // Basis = letzte Wiegung (ab Startdatum). Ihr Tag zählt mit, weil man morgens wiegt.
+  const lastW=[...ws].filter(w=>w.date>=startDate&&w.date<=tk).sort((a,b)=>a.date<b.date?1:-1)[0];
+  const anchorKg=lastW?lastW.kg:startKg,anchorDate=lastW?lastW.date:startDate;
+  const anchorKcal=Math.round(Math.max(0,dir*(anchorKg-goalKg))*KCAL_PER_KG);
+  const after=sumRange(anchorDate,tk);
+  const remaining=Math.max(0,anchorKcal-after.sum);
+  const done=total-remaining;
+  const pct=total>0?Math.max(0,Math.min(100,done/total*100)):100;
   const cur=latestWeight(ws);
   const rate=p.goal==="keep"?0:pl.d;
-  return{startKg,goalKg,startDate,dir,total,since,week,todayDef,done:Math.max(0,since.sum),remaining,pct,cur,days:rate>0?Math.ceil(remaining/rate):null,reached:total===0||remaining===0};
+  return{startKg,goalKg,startDate,dir,total,since,week,todayDef,done,remaining,pct,cur,anchorKg,anchorDate,anchorKcal,after,fromWeight:!!lastW,days:rate>0?Math.ceil(remaining/rate):null,reached:total===0||remaining===0};
 }
 function goalOpen(){try{return localStorage.getItem("nutrac-goal-open")==="1"}catch(e){return false}}
 function toggleGoal(){const v=!goalOpen();try{localStorage.setItem("nutrac-goal-open",v?"1":"0")}catch(e){}
@@ -800,17 +806,19 @@ function renderGoal(){
   const open=goalOpen();el.setAttribute("aria-expanded",String(open));
   el.innerHTML=`<div class="card-title"><h2>Zielgewicht</h2><span class="gtog">${fw(g.startKg)} → ${fw(g.goalKg)} ${UNIT()}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></span></div>
   ${g.reached?`<div class="gbig"><span class="val">Ziel erreicht</span><span class="unit">${fmt(g.total)} kcal ${word} geschafft</span></div>`:`<div class="gbig"><span class="val">${fmt(g.remaining)}</span><span class="unit">kcal noch bis zum Ziel</span></div>
-  <div class="sub" style="margin-top:-6px"><span>${fmt(g.done)} / ${fmt(g.total)} kcal geschafft</span>${g.todayDef!=null?`<span>· heute ${sgn(g.todayDef)}</span>`:""}</div>`}
+  <div class="sub" style="margin-top:-6px"><span>${g.done>=0?`${fmt(g.done)} / ${fmt(g.total)} kcal geschafft`:`${fmt(-g.done)} kcal mehr als beim Start`}</span>${g.todayDef!=null?`<span>· heute ${sgn(g.todayDef)}</span>`:""}</div>`}
   <div class="bar"><i style="width:${g.pct}%"></i></div>
   <div class="gdet" ${open?"":"hidden"}>
   <div class="gcalc">
     <div><span>Start → Ziel<small>${fw(Math.abs(g.startKg-g.goalKg))} ${UNIT()} × ${fmt(KCAL_PER_KG)} kcal/kg</small></span><span class="num">${fmt(g.total)} kcal</span></div>
+    ${g.fromWeight?`<div><span>Letzte Wiegung<small>${parseKey(g.anchorDate).toLocaleDateString("de-DE",{day:"numeric",month:"short"})} · noch ${fw(Math.max(0,g.dir*(g.anchorKg-g.goalKg)))} ${UNIT()} × ${fmt(KCAL_PER_KG)}</small></span><span class="num">${fw(g.anchorKg)} ${UNIT()} · ${fmt(g.anchorKcal)} kcal</span></div>
+    <div><span>${word} seit der Wiegung<small>${g.after.n} ${g.after.n===1?"Tag":"Tage"} mit Einträgen, inkl. Sport & Schritte</small></span><span class="num">${sgn(g.after.sum)} kcal</span></div>
+    <div class="total"><span>Noch bis zum Ziel</span><span class="num">${fmt(g.remaining)} kcal</span></div>`:""}
     <div><span>${word} seit Start<small>ab ${sd} bis heute · ${g.since.n} ${g.since.n===1?"Tag":"Tage"} mit Einträgen</small></span><span class="num">${sgn(g.since.sum)} kcal</span></div>
     <div><span>${word} diese Woche<small>Mo bis heute · ${g.week.n} ${g.week.n===1?"Tag":"Tage"}</small></span><span class="num">${sgn(g.week.sum)} kcal</span></div>
     ${g.days&&!g.reached?`<div><span>Bei ${fmt(S.users[S.me].delta)} kcal ${word}/Tag</span><span class="num">≈ ${fmt(g.days)} Tage</span></div>`:""}
-    ${g.cur?`<div><span>Waage aktuell<small>zum Vergleich</small></span><span class="num">${fw(g.cur)} ${UNIT()} · noch ${fw(left)} ${UNIT()}</span></div>`:""}
   </div>
-  <p class="hint" style="margin:0">Pro Tag zählt: Bedarf + Sport + Schritte − Gegessenes. Heute läuft live mit, sobald du etwas gegessen eingetragen hast. Tage ohne Essens-Eintrag zählen nicht.</p>
+  <p class="hint" style="margin:0">Gerechnet wird ab deiner letzten Wiegung: was dann noch bis zum Ziel fehlt, minus dein ${word} ab diesem Tag. Trägst du ein neues Gewicht ein, passt sich alles automatisch an. Pro Tag zählt: Bedarf + Sport + Schritte − Gegessenes. Heute läuft live mit, sobald du etwas gegessen eingetragen hast. Tage ohne Essens-Eintrag zählen nicht.</p>
   </div>`;
 }
 function routineMode(){return (S.users[S.me]&&S.users[S.me].routineMode)||"all"}
