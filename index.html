@@ -559,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="47";
+const APP_VERSION="48";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -781,7 +781,10 @@ function goalCalc(p,ws,hist){
   const total=Math.round(Math.abs(startKg-goalKg)*KCAL_PER_KG);
   // Basis = letzte Wiegung (ab Startdatum). Ihr Tag zählt mit, weil man morgens wiegt.
   const lastW=[...ws].filter(w=>w.date>=startDate&&w.date<=tk).sort((a,b)=>a.date<b.date?1:-1)[0];
-  const anchorKg=lastW?lastW.kg:startKg,anchorDate=lastW?lastW.date:startDate;
+  // Gleiches Gewicht wie früher schon mal (z. B. wieder 55,1) → ab dem ersten Tag mit diesem Gewicht rechnen,
+  // damit das Defizit dazwischen nicht verloren geht.
+  const same=lastW?ws.filter(w=>w.date>=startDate&&w.date<=tk&&Math.abs(w.kg-lastW.kg)<.05).sort((a,b)=>a.date<b.date?-1:1)[0]:null;
+  const anchorKg=lastW?lastW.kg:startKg,anchorDate=same?same.date:lastW?lastW.date:startDate;
   const anchorKcal=Math.round(Math.max(0,dir*(anchorKg-goalKg))*KCAL_PER_KG);
   const after=sumRange(anchorDate,tk);
   const remaining=Math.max(0,anchorKcal-after.sum);
@@ -811,14 +814,14 @@ function renderGoal(){
   <div class="gdet" ${open?"":"hidden"}>
   <div class="gcalc">
     <div><span>Start → Ziel<small>${fw(Math.abs(g.startKg-g.goalKg))} ${UNIT()} × ${fmt(KCAL_PER_KG)} kcal/kg</small></span><span class="num">${fmt(g.total)} kcal</span></div>
-    ${g.fromWeight?`<div><span>Letzte Wiegung<small>${parseKey(g.anchorDate).toLocaleDateString("de-DE",{day:"numeric",month:"short"})} · noch ${fw(Math.max(0,g.dir*(g.anchorKg-g.goalKg)))} ${UNIT()} × ${fmt(KCAL_PER_KG)}</small></span><span class="num">${fw(g.anchorKg)} ${UNIT()} · ${fmt(g.anchorKcal)} kcal</span></div>
-    <div><span>${word} seit der Wiegung<small>${g.after.n} ${g.after.n===1?"Tag":"Tage"} mit Einträgen, inkl. Sport & Schritte</small></span><span class="num">${sgn(g.after.sum)} kcal</span></div>
+    ${g.fromWeight?`<div><span>Gewicht<small>seit ${parseKey(g.anchorDate).toLocaleDateString("de-DE",{day:"numeric",month:"short"})} · noch ${fw(Math.max(0,g.dir*(g.anchorKg-g.goalKg)))} ${UNIT()} × ${fmt(KCAL_PER_KG)}</small></span><span class="num">${fw(g.anchorKg)} ${UNIT()} · ${fmt(g.anchorKcal)} kcal</span></div>
+    <div><span>${word} seitdem<small>${g.after.n} ${g.after.n===1?"Tag":"Tage"} mit Einträgen, inkl. Sport & Schritte</small></span><span class="num">${sgn(g.after.sum)} kcal</span></div>
     <div class="total"><span>Noch bis zum Ziel</span><span class="num">${fmt(g.remaining)} kcal</span></div>`:""}
     <div><span>${word} seit Start<small>ab ${sd} bis heute · ${g.since.n} ${g.since.n===1?"Tag":"Tage"} mit Einträgen</small></span><span class="num">${sgn(g.since.sum)} kcal</span></div>
     <div><span>${word} diese Woche<small>Mo bis heute · ${g.week.n} ${g.week.n===1?"Tag":"Tage"}</small></span><span class="num">${sgn(g.week.sum)} kcal</span></div>
     ${g.days&&!g.reached?`<div><span>Bei ${fmt(S.users[S.me].delta)} kcal ${word}/Tag</span><span class="num">≈ ${fmt(g.days)} Tage</span></div>`:""}
   </div>
-  <p class="hint" style="margin:0">Gerechnet wird ab deiner letzten Wiegung: was dann noch bis zum Ziel fehlt, minus dein ${word} ab diesem Tag. Trägst du ein neues Gewicht ein, passt sich alles automatisch an. Pro Tag zählt: Bedarf + Sport + Schritte − Gegessenes. Heute läuft live mit, sobald du etwas gegessen eingetragen hast. Tage ohne Essens-Eintrag zählen nicht.</p>
+  <p class="hint" style="margin:0">Gerechnet wird ab deinem aktuellen Gewicht: was noch bis zum Ziel fehlt, minus dein ganzes ${word} ab dem Tag, seit dem du dieses Gewicht hast (auch rückwirkend). Trägst du ein neues Gewicht ein, passt sich alles automatisch an. Pro Tag zählt: Bedarf + Sport + Schritte − Gegessenes. Heute läuft live mit, sobald du etwas gegessen eingetragen hast. Tage ohne Essens-Eintrag zählen nicht.</p>
   </div>`;
 }
 function routineMode(){return (S.users[S.me]&&S.users[S.me].routineMode)||"all"}
