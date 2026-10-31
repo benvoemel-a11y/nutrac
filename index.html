@@ -559,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="48";
+const APP_VERSION="49";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -797,7 +797,7 @@ function goalCalc(p,ws,hist){
 function goalOpen(){try{return localStorage.getItem("nutrac-goal-open")==="1"}catch(e){return false}}
 function toggleGoal(){const v=!goalOpen();try{localStorage.setItem("nutrac-goal-open",v?"1":"0")}catch(e){}
   const el=$("#goalCard");el.setAttribute("aria-expanded",String(v));const d=el.querySelector(".gdet");if(d)d.hidden=!v}
-function renderGoal(){
+function renderGoal(){cacheSoon();
   const el=$("#goalCard");if(!el)return;
   const p=S.users[S.me];const g=goalCalc(p,S.weights,S.hist);
   if(!g){el.parentElement.hidden=true;return}
@@ -1178,7 +1178,7 @@ function openSettings(){
     b.querySelectorAll("input").forEach(i=>i.addEventListener("input",()=>{readDraft();renderProfileBits()}));
     b.querySelector("#bkStatus").textContent=backupText();
     b.querySelector("#acMail").textContent=S.email||"";
-    b.querySelector("#acOut").onclick=async()=>{try{await SB.auth.signOut()}catch(e){}location.reload()};
+    b.querySelector("#acOut").onclick=async()=>{try{localStorage.removeItem(CACHE_KEY(S.me))}catch(e){}try{await SB.auth.signOut()}catch(e){}location.reload()};
     b.querySelector("#bkSave").onclick=e=>saveBackup(e.currentTarget);
     let rpw=0;b.querySelector("#rpWeek").onclick=e=>{const x=e.target.closest("button");if(!x)return;rpw=+x.dataset.v;b.querySelectorAll("#rpWeek button").forEach(y=>y.setAttribute("aria-pressed",String(y===x)))};
     b.querySelector("#rpGo").onclick=e=>weekReport(rpw,e.currentTarget);
@@ -1428,7 +1428,13 @@ function addFriendSheet(){
         toast(r==="accepted"?"Ihr seid jetzt befreundet":"Anfrage gesendet");closeSheet()}catch(err){console.warn(err);st.textContent="Hat nicht geklappt – bitte nochmal.";e.currentTarget.disabled=false}};
   });
 }
-function render(){renderToday();renderWeight();renderFriends()}
+function render(){renderToday();renderWeight();renderFriends();cacheSoon()}
+/* Sofortstart: letzter Stand liegt im Speicher und wird beim Öffnen direkt angezeigt, dann frisch geladen */
+const CACHE_KEY=uid=>"nutrac-cache-"+uid;let cacheT=null,cacheReady=false;
+function cacheSoon(){if(!cacheReady||!S.me||S.view!==S.me)return;clearTimeout(cacheT);cacheT=setTimeout(saveCache,700)}
+function saveCache(){try{const t=keyOf(new Date());localStorage.setItem(CACHE_KEY(S.me),JSON.stringify({v:1,ts:Date.now(),users:S.users,weights:S.weights,day:t,food:S.day===t?S.food:null,hist:S.hist,meals:S.meals,routines:S.routines,requests:S.requests}))}catch(e){}}
+function loadCache(uid){try{const c=JSON.parse(localStorage.getItem(CACHE_KEY(uid))||"null");if(!c||c.v!==1)return false;
+  const t=keyOf(new Date());S.users=c.users||{};S.weights=c.weights||[];S.food=c.day===t&&c.food?c.food:[];S.hist=c.hist||[];S.meals=c.meals||[];S.routines=c.routines||[];S.requests=c.requests||[];return true}catch(e){return false}}
 
 /* ---------- Seiten ---------- */
 function go(i){
@@ -2613,6 +2619,8 @@ function homeHint(){
   const C=window.NUTRAC_CONFIG||{};
   if(!window.supabase||!C.SUPABASE_URL||/DEIN|YOUR/.test(C.SUPABASE_URL)){showLogin("Nutrac ist noch nicht eingerichtet: Trag in config.js deine Supabase-Adresse und den Schlüssel ein (Anleitung, Schritt 2).");$("#lgGo").disabled=true;return}
   try{if(!keepStore.getItem("nutrac-auth")){const ok=Object.keys(localStorage).find(k=>/^sb-.*-auth-token$/.test(k));if(ok)keepStore.setItem("nutrac-auth",localStorage.getItem(ok))}}catch(e){}
+  // sofort den letzten Stand zeigen, noch bevor die Anmeldung geprüft ist
+  try{const j=JSON.parse(keepStore.getItem("nutrac-auth")||"null");const uid=j&&j.user&&j.user.id;if(uid&&loadCache(uid)){S.me=uid;S.view=uid;S.email=j.user.email;render();renderPlan();renderGoal()}}catch(e){console.warn(e)}
   SB=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,storageKey:"nutrac-auth",storage:keepStore}});
   let session=null;try{session=(await SB.auth.getSession()).data.session}catch(e){console.warn(e)}
   if(!session){try{const raw=keepStore.getItem("nutrac-auth");const j=raw&&JSON.parse(raw);if(j&&j.user&&j.refresh_token){const r=await SB.auth.setSession({access_token:j.access_token,refresh_token:j.refresh_token});session=r.data.session||null;if(!session&&navigator.onLine===false)session=j}}catch(e){console.warn(e)}}
@@ -2620,6 +2628,8 @@ function homeHint(){
   SB.auth.onAuthStateChange((ev)=>{if(ev==="SIGNED_OUT")location.reload()});
   S.me=session.user.id;S.email=session.user.email;S.view=S.me;
   store.init(SB);
+  if(loadCache(S.me)){try{render();renderPlan();renderGoal()}catch(e){console.warn(e)}}
+  cacheReady=true;
   render();readyDone();
   acceptInvite();
   store.meals(S.me,list=>{S.meals=list;if($("#sheet").classList.contains("on")&&(sheetCur===openAdd||sheetCur===savedSheet)){const f=sheetCur;navBack=true;try{f()}finally{navBack=false}}});
