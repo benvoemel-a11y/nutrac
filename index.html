@@ -559,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="52";
+const APP_VERSION="53";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -661,7 +661,7 @@ function plan(p,weightKg){
   if(!p) return null;
   const w=weightKg||num(p.weight),h=num(p.height),a=num(p.age);
   if(!w||!h||!a) return null;
-  const bmr=num(p.bmrOwn)>0?num(p.bmrOwn):10*w+6.25*h-5*a+(p.sex==="w"?-161:5);
+  const bmr=10*w+6.25*h-5*a+(p.sex==="w"?-161:5); // Mifflin-St Jeor, immer mit aktuellem Gewicht
   const stepMode=p.actMode==="steps";
   const tdee=bmr*(stepMode?1.2:num(p.act||1.375));
   const d=p.goal==="keep"?0:num(p.delta??500);
@@ -986,7 +986,6 @@ const PROFILE_HTML=`
       <label class="fld"><span>Größe cm</span><input class="in" type="text" inputmode="numeric" id="pHeight" placeholder="170" autocomplete="off"></label>
       <label class="fld"><span id="pKgLab">Gewicht kg</span><input class="in" type="text" inputmode="decimal" id="pKg" placeholder="60,0" autocomplete="off"></label>
     </div>
-    <label class="fld"><span>Grundumsatz kcal (eigener Wert, optional)</span><input class="in" type="text" inputmode="numeric" id="pBmr" placeholder="leer = automatisch berechnet" autocomplete="off"></label>
     <div class="fld"><span>Alltag (ohne Sport) berechnen über</span>
       <div class="seg" id="pActMode"><button data-v="level">Aktivitätsstufe</button><button data-v="steps">Schritte</button></div></div>
     <div class="fld" id="actLvlFld"><span>Aktivitätsstufe</span>
@@ -1083,7 +1082,7 @@ function fillProfile(){
   $("#pStartKg").value=draft.startKg?de(Math.round(toU(draft.startKg,draft.unit)*10)/10):"";
   $("#pStartDate").value=draft.startDate;$("#pStartDate").max=keyOf(new Date());
   $("#pName").value=draft.name;$("#pAge").value=de(draft.age);$("#pHeight").value=de(draft.height);$("#pKg").value=draft.weight?de(Math.round(toU(draft.weight,draft.unit)*10)/10):"";$("#pDelta").value=de(draft.delta);
-  $("#pStepsDef").value=draft.stepsDefault||"";draft.bmrOwn=p.bmrOwn||"";$("#pBmr").value=draft.bmrOwn||"";
+  $("#pStepsDef").value=draft.stepsDefault||"";
   $("#stP").value=de(draft.protKg);$("#stF").value=de(draft.fatPct);$("#stC").value=de(draft.carbG);
   renderProfileBits();
 }
@@ -1095,7 +1094,6 @@ function readDraft(){
   draft.weight=num($("#pKg").value)?kgRound(fromU(num($("#pKg").value),draft.unit),draft.unit):"";
   draft.delta=Math.max(0,Math.round(num($("#pDelta").value)));
   draft.stepsDefault=Math.round(num(String($("#pStepsDef").value).replace(/\./g,"")))||"";
-  draft.bmrOwn=Math.round(num(String($("#pBmr").value).replace(/\./g,"")))||"";
   draft.goalKg=num($("#pGoalKg").value)?kgRound(fromU(num($("#pGoalKg").value),draft.unit),draft.unit):"";
   draft.startKg=num($("#pStartKg").value)?kgRound(fromU(num($("#pStartKg").value),draft.unit),draft.unit):"";
   draft.startDate=$("#pStartDate").value||keyOf(new Date());
@@ -1119,7 +1117,7 @@ function renderProfileBits(){
   if(!pl){c.innerHTML=`<div><span class="hint">Alter, Größe und Gewicht eintragen, dann erscheint hier dein Tagesziel.</span></div>`;return}
   const wk=pl.d*7/KCAL_PER_KG;
   const gk=num(draft.goalKg),sk=num(draft.startKg)||num(draft.weight),dk=gk&&sk?Math.abs(sk-gk):0;
-  c.innerHTML=`<div><span>Grundumsatz${num(draft.bmrOwn)>0?" (eigener Wert)":""}</span><span class="num">${fmt(pl.bmr)} kcal</span></div>
+  c.innerHTML=`<div><span>Grundumsatz<small style="display:block;font-size:11px;color:var(--faint)">Formel mit deinem aktuellen Gewicht</small></span><span class="num">${fmt(pl.bmr)} kcal</span></div>
   <div><span>${pl.stepMode?"Bedarf ohne Schritte":"Bedarf mit Alltag"}</span><span class="num">${fmt(pl.tdee)} kcal</span></div>
   ${pl.stepMode?`<div><span>Schritte (Standard ${fmt(pl.stepsDefault)})</span><span class="num">+ ${fmt(pl.stepK(pl.stepsDefault))} kcal</span></div>`:""}
   ${draft.goal!=="keep"?`<div><span>${draft.goal==="lose"?"Defizit":"Überschuss"}</span><span class="num">${draft.goal==="lose"?"−":"+"} ${fmt(pl.d)} kcal</span></div>`:""}
@@ -1273,7 +1271,7 @@ async function saveProfile(){
   if(draft.weight<30||draft.weight>300){say(draft.unit==="lb"?"Gewicht bitte in lb, z. B. 118.":"Gewicht bitte in kg, z. B. 53,5.",true);return}
   const btn=$("#pSave");btn.disabled=true;say("Speichert …");
   await ready;
-  const p={...(S.users[S.me]||{}),name:draft.name||"Ich",sex:draft.sex,age:draft.age,height:draft.height,weight:draft.weight,act:num(draft.act),actMode:draft.actMode,stepsDefault:draft.stepsDefault||0,bmrOwn:draft.bmrOwn>=800&&draft.bmrOwn<=4000?draft.bmrOwn:0,goal:draft.goal,delta:draft.goal==="keep"?(S.users[S.me]?.delta??500):draft.delta,
+  const p={...(S.users[S.me]||{}),name:draft.name||"Ich",sex:draft.sex,age:draft.age,height:draft.height,weight:draft.weight,act:num(draft.act),actMode:draft.actMode,stepsDefault:draft.stepsDefault||0,goal:draft.goal,delta:draft.goal==="keep"?(S.users[S.me]?.delta??500):draft.delta,
     protKg:Math.min(3.5,Math.max(.8,draft.protKg)),fatPct:Math.min(45,Math.max(15,draft.fatPct)),carbG:draft.carbG||0,showMacros:draft.layout.find(x=>x.id==="macros").on,layout:draft.layout.map(x=>({id:x.id,on:x.on})),addOrder:draft.addOrder.map(x=>({id:x.id,on:x.on})),unit:draft.unit,wmColor:draft.wmColor,theme:draft.theme,goalKg:draft.goal==="keep"?(S.users[S.me]?.goalKg||0):(draft.goalKg||0),
     startKg:draft.goal==="keep"?(S.users[S.me]?.startKg||0):(draft.goalKg?(draft.startKg||draft.weight):0),startDate:draft.startDate,share:{...draft.share},updated:Date.now()};
   try{
