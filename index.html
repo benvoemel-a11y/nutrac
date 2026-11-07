@@ -28,8 +28,8 @@
 <link rel="apple-touch-startup-image" data-s="320x568@2" href="splash/grau-320x568@2.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
 <script>try{var wc=localStorage.getItem("nutrac-wm");if(wc){document.documentElement.style.setProperty("--wm",wc)}if(localStorage.getItem("nutrac-theme")==="dunkel"){var R=document.documentElement;R.dataset.theme="dunkel";R.style.background="#131313";document.querySelector('meta[name=theme-color]').content="#131313";document.querySelectorAll("link[data-s]").forEach(function(l){l.href="splash/dunkel-"+l.dataset.s+".png"})}}catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/icon-180.png">
-<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-w-180.png">
+<link rel="icon" type="image/png" href="icons/icon-w-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" media="print" onload="this.media='all'">
 <style>
@@ -448,7 +448,7 @@ button{background:none;border:0;padding:0;cursor:pointer}
 <body>
 
 <div id="invite" hidden>
-  <img src="icons/icon-180.png" alt="" class="iv-ic">
+  <img src="icons/icon-w-180.png" alt="" class="iv-ic">
   <div class="iv-k">EINLADUNG</div>
   <h1>Gemeinsam<br>tracken<i>.</i></h1>
   <p id="ivSub">Du wurdest zu Nutrac eingeladen – Kalorien, Gewicht und Sport, zusammen.</p>
@@ -559,7 +559,7 @@ const fw=(kg,d=1,u)=>fmt(toU(kg,u),d);
 const kgRound=(kg,u)=>Math.round(kg*((u||UNIT())==="lb"?100:10))/((u||UNIT())==="lb"?100:10);
 const BLOCKS=[["kcal","Kalorien"],["macros","Makros"],["weight","Gewicht"],["goal","Zielgewicht"],["plan","Routinen"],["entries","Einträge + Hinzufügen"]];
 const KCAL_PER_KG=7000;
-const APP_VERSION="53";
+const APP_VERSION="54";
 const WM_COLORS=[["schwarz","Schwarz","#1d1d1d"],["weiss","Weiß","#ffffff"],["rot","Rot","#b8202e"],["pink","Pink","#e0559a"],["gelb","Gelb","#f2c230"],["gruen","Grün","#2f9e55"],["orange","Orange","#ee7b22"],["blau","Blau","#2f6fd6"]];
 function applyWordmark(key){const c=WM_COLORS.find(x=>x[0]===key)||WM_COLORS[0];const dk=document.documentElement.dataset.theme==="dunkel";document.documentElement.style.setProperty("--wm",dk&&c[0]==="schwarz"?"var(--fg)":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2]));const light=c[0]==="weiss"||c[0]==="gelb"||(dk&&c[0]==="schwarz");document.documentElement.style.setProperty("--wm-on",light?"#151515":"#f4f4f4");try{localStorage.setItem("nutrac-wm",getComputedStyle(document.documentElement).getPropertyValue("--wm").trim().startsWith("var")?(dk?"#ececec":c[2]):(dk&&c[0]==="schwarz"?"#ececec":(!dk&&c[0]==="weiss"?"#f4f4f4":c[2])))}catch(e){}}
 const THEMES=[["grau","Grau"],["dunkel","Dunkel"]];
@@ -743,7 +743,7 @@ function renderToday(){
   const pending=isMine()&&S.canWrite&&(planOff||routineMode()==="planned")?S.routines.filter(r=>(r.days||[]).includes(wdOf(S.day))&&!S.food.some(e=>e.routineId===r.id)):[];
   const canDel=isMine()&&S.canWrite;
   const SW=(key,html)=>canDel?`<div class="sw" data-sw="${key}"><button class="swdel" tabindex="-1">Löschen</button>${html}</div>`:html;
-  const extraRows=(DS.stepsEntry?SW("e:"+esc(DS.stepsEntry.id),`<button class="row" data-steps="1"><span class="t">${DS.stepsEntry.t?new Date(DS.stepsEntry.t).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):""}</span><span class="n">Schritte${DS.stepsEntry.src==="whoop"?" · Whoop":""}<small>${DS.stepsEntry.total!=null&&DS.stepsEntry.trainSteps?`${fmt(DS.stepsEntry.total)} gesamt − ${fmt(DS.stepsEntry.trainSteps)} im Training = ${fmt(DS.steps)} Alltag`:`${fmt(DS.steps)} Schritte`}</small></span><span class="k">+ ${fmt(SP.k)}</span></button>`):"")
+  const extraRows=(DS.stepsEntry?SW("e:"+esc(DS.stepsEntry.id),`<button class="row" data-steps="1"><span class="t">${DS.stepsEntry.t?new Date(DS.stepsEntry.t).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):""}</span><span class="n">Schritte<small>${fmt(DS.steps)} Schritte</small></span><span class="k">+ ${fmt(SP.k)}</span></button>`):"")
     +pending.map(r=>`<button class="row prow" data-rt="${esc(r.id)}" aria-pressed="false"><span class="tick"></span><span class="n">${esc(r.name)}<small>geplant${r.min?" · "+fmt(r.min)+" min":""} · antippen zum Abhaken</small></span><span class="k">+ ${fmt(r.kcal)}</span></button>`).join("");
   const el=$("#entries");
   if(!S.me){el.innerHTML=`<div class="empty">Wird geladen…</div>`;return}
@@ -1295,9 +1295,9 @@ function ringsHtml(P,C,F,pl,carbs,small){
 }
 const shareOf=p=>({weight:true,kcal:true,macros:true,entries:true,...((p&&p.share)||{})});
 function dayStats(food){
+  food=food.filter(e=>e.src!=="whoop"); // Whoop ist getrennt: von dort geschickte Einträge zählen nicht
+  const foods=food.filter(e=>!e.kind||e.kind==="food"),sports=food.filter(e=>e.kind==="sport");
   const st=food.find(e=>e.kind==="steps");
-  // Schritte vom Whoop-Band sind schon die echten Alltags-Schritte → manuelle „extra Schritte“ zählen dann nicht zusätzlich
-  const foods=food.filter(e=>!e.kind||e.kind==="food"),sports=food.filter(e=>e.kind==="sport"&&!(st&&st.src==="whoop"&&e.src==="steps"));
   const sum=(a,k)=>a.reduce((s,e)=>s+num(e[k]),0);
   return{foods,sports,stepsEntry:st||null,steps:st?num(st.steps):null,eaten:sum(foods,"kcal"),burned:sum(sports,"kcal"),P:sum(foods,"p"),C:sum(foods,"c"),F:sum(foods,"f")};
 }

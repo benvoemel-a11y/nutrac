@@ -1,7 +1,7 @@
 // Nutrac Service Worker – hält die App-Dateien offline bereit.
 // Bei jedem Update die Versionsnummer erhöhen, dann holen sich die Handys die neue Version.
-const VERSION = "nutrac-v53";
-const SHELL = ["./", "index.html", "config.js", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png"];
+const VERSION = "nutrac-v54";
+const SHELL = ["./", "index.html", "config.js", "manifest.webmanifest", "icons/icon-w-180.png", "icons/icon-w-192.png", "icons/icon-w-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
@@ -46,7 +46,7 @@ self.addEventListener("push", e => {
   let m = {};
   try { m = e.data ? e.data.json() : {}; } catch (_) { m = { body: e.data && e.data.text() }; }
   e.waitUntil(self.registration.showNotification(m.title || "Nutrac", {
-    body: m.body || "", tag: m.tag, renotify: !!m.tag, icon: "icons/icon-192.png", badge: "icons/icon-192.png", data: { url: m.url || "./" }
+    body: m.body || "", tag: m.tag, renotify: !!m.tag, icon: "icons/icon-w-192.png", badge: "icons/icon-w-192.png", data: { url: m.url || "./" }
   }));
 });
 self.addEventListener("notificationclick", e => {
