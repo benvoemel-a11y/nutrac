@@ -1,6 +1,6 @@
 // Nutrac Service Worker – hält die App-Dateien offline bereit.
 // Bei jedem Update die Versionsnummer erhöhen, dann holen sich die Handys die neue Version.
-const VERSION = "nutrac-v55";
+const VERSION = "nutrac-v56";
 const SHELL = ["./", "index.html", "config.js", "manifest.webmanifest", "icons/icon-w-180.png", "icons/icon-w-192.png", "icons/icon-w-512.png"];
 
 self.addEventListener("install", e => {
